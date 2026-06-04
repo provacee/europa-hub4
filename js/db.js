@@ -405,35 +405,90 @@ async function _persistSelection(sel) {
   catch(e) { console.error('[DB] persistSelection error', e); }
 }
 
-/* Envia invitació per email via Resend (si configurat) */
+/* Envia invitació per email.
+   Si Resend està configurat, l'envia automàticament.
+   Si no, obre el client de correu de l'usuari amb el missatge preparat. */
 async function sendInvitationEmail(inv) {
-  if (!USE_EMAIL) return false;
   const inviteUrl = `${SITE_URL}/#invite-${inv.token}`;
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization':`Bearer ${RESEND_API_KEY}`, 'Content-Type':'application/json' },
-      body: JSON.stringify({
-        from: 'Europa Hub <noreply@ceeuropa.cat>',
-        to:   [inv.email],
-        subject: `Invitació a Europa Hub — ${inv.player_name} ${inv.player_surname}`,
-        html: `
-          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-            <img src="${SITE_URL}/assets/escut.svg" style="width:60px;margin-bottom:16px" alt="CE Europa">
-            <h2 style="color:#022E91;margin:0 0 8px">Benvingut/da a Europa Hub</h2>
-            <p>Hola <strong>${inv.player_name} ${inv.player_surname}</strong>,</p>
-            <p>Has estat convidat/da a unir-te a Europa Hub, la plataforma digital interna del Club Esportiu Europa.</p>
-            <p>Fes clic al botó per activar el teu compte:</p>
-            <a href="${inviteUrl}" style="display:inline-block;background:#022E91;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Activar el meu compte →</a>
-            <p style="color:#666;font-size:.85rem">O copia aquest enllaç: ${inviteUrl}</p>
-            <p style="color:#666;font-size:.85rem">L'enllaç és vàlid durant 7 dies.</p>
-            <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-            <p style="color:#999;font-size:.75rem">Club Esportiu Europa · Europa Hub</p>
-          </div>`,
-      }),
+
+  /* ── Intent via Resend (si hi ha API key) ── */
+  if (USE_EMAIL) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization':`Bearer ${RESEND_API_KEY}`, 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          from: 'Europa Hub <noreply@ceeuropa.cat>',
+          to:   [inv.email],
+          subject: `Invitació a Europa Hub — ${inv.player_name} ${inv.player_surname}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+              <h2 style="color:#022E91">Benvingut/da a Europa Hub</h2>
+              <p>Hola <strong>${inv.player_name} ${inv.player_surname}</strong>,</p>
+              <p>Has estat convidat/da a unir-te a Europa Hub, la plataforma digital interna del Club Esportiu Europa.</p>
+              <a href="${inviteUrl}" style="display:inline-block;background:#022E91;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Activar el meu compte →</a>
+              <p style="color:#666;font-size:.85rem">O copia: ${inviteUrl}</p>
+              <p style="color:#666;font-size:.85rem">Vàlid 7 dies.</p>
+            </div>`,
+        }),
+      });
+      if (res.ok) return 'resend';
+    } catch(e) { console.error('[Email] Resend error', e); }
+  }
+
+  /* ── Fallback: obre el client de correu de l'usuari ── */
+  const subject = encodeURIComponent(
+    `Invitació a Europa Hub — ${inv.player_name} ${inv.player_surname}`
+  );
+  const body = encodeURIComponent(
+`Hola ${inv.player_name} ${inv.player_surname},
+
+Has estat convidat/da a unir-te a Europa Hub, la plataforma digital interna del Club Esportiu Europa.
+
+Fes clic a l'enllaç per activar el teu compte i definir la teva contrasenya:
+${inviteUrl}
+
+L'enllaç és vàlid durant 7 dies.
+
+Club Esportiu Europa`
+  );
+  window.open(`mailto:${inv.email}?subject=${subject}&body=${body}`, '_self');
+  return 'mailto';
+}
+
+/* ── Upload de fitxers ──────────────────────────────────────
+   Si Supabase actiu: puja a Storage i retorna URL pública.
+   Si localStorage: converteix a base64 (per a fotos petites). */
+
+async function _uploadToStorage(bucket, path, file) {
+  const { error } = await _sb.storage.from(bucket).upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw new Error(error.message);
+  const { data } = _sb.storage.from(bucket).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function uploadPlayerPhoto(playerId, file) {
+  if (!USE_SUPABASE) {
+    /* Base64 fallback per a localStorage */
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-    return res.ok;
-  } catch(e) { console.error('[Email] Resend error', e); return false; }
+  }
+  const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
+  const path = `${currentTeamId||'default'}/${playerId}.${ext}`;
+  return _uploadToStorage('player-photos', path, file);
+}
+
+async function uploadPlayerDoc(playerId, file) {
+  if (!USE_SUPABASE) {
+    toast('Pujar PDFs requereix Supabase configurat', 'error');
+    return '';
+  }
+  const path = `${currentTeamId||'default'}/${playerId}.pdf`;
+  return _uploadToStorage('player-docs', path, file);
 }
 
 /* Helpers interns */

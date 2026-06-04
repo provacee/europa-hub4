@@ -6,85 +6,49 @@
 
 function renderHome() {
   const u = currentUser;
-  const perms = DB.permissions()[u.role] || {};
-  const players = DB.players();
-  const tasks = DB.tasks();
-  const pending = tasks.filter(t => t.status !== 'done').length;
-
-  const links = [];
-  if (perms.squad)     links.push({ page:'squad',     label:'Plantilla',    icon:'users',    col:'var(--brand)' });
-  if (perms.tactical)  links.push({ page:'tactical',  label:'Pissarra',     icon:'tactical', col:'var(--blue)' });
-  if (perms.training)  links.push({ page:'training',  label:'Entrenaments', icon:'training', col:'var(--green)' });
-  if (perms.wellness)  links.push({ page:'wellness',  label:'Wellness',     icon:'wellness', col:'var(--yellow)' });
-  if (perms.selection) links.push({ page:'selection', label:'Convocatòria', icon:'selection',col:'var(--brand)' });
-  if (perms.scouting)  links.push({ page:'scouting',  label:'Scouting',     icon:'scouting', col:'var(--purple)' });
-
+  const firstName = u.name.split(' ')[0].toUpperCase();
   return `
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:28px">
-    <div class="logo-mark" style="width:44px;height:44px;font-size:24px">E</div>
-    <div>
-      <div style="font-family:var(--font-display);font-size:1.5rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Benvingut, ${u.name.split(' ')[0]}</div>
-      <div style="font-size:.78rem;color:var(--text3)">${DEFAULT_ROLES[u.role]?.label || u.role} · Club Esportiu Europa</div>
-    </div>
-  </div>
-
-  ${pending > 0 && perms.tasks ? `
-  <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--yellow-dim);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);margin-bottom:20px">
-    <span style="font-size:1rem">⚠</span>
-    <span style="font-size:.8125rem;font-weight:500;color:var(--yellow)">${pending} tasca${pending>1?'es':''} pendent${pending>1?'s':''}</span>
-    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="navigate('tasks')">Veure →</button>
-  </div>
-  ` : ''}
-
-  ${links.length > 0 ? `
-  <div style="font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Accés ràpid</div>
-  <div class="grid grid-auto" style="margin-bottom:28px">
-    ${links.map(l => `
-    <div class="card card-sm" style="cursor:pointer;border-color:var(--border)" onclick="navigate('${l.page}')"
-      onmouseover="this.style.borderColor='${l.col}'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:32px;height:32px;border-radius:6px;background:${l.col}18;display:flex;align-items:center;justify-content:center;color:${l.col}">${ico(l.icon)}</div>
-        <span style="font-weight:500;font-size:.8125rem">${l.label}</span>
-        <span style="margin-left:auto;color:var(--text3);font-size:.75rem">→</span>
+  <div style="
+    margin:-24px;
+    min-height:calc(100vh - var(--header-h));
+    background:var(--brand) url('assets/camp.jpg') center/cover no-repeat;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;
+  ">
+    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(2,46,145,.9) 0%,rgba(2,46,145,.45) 40%,rgba(0,0,0,.3) 100%)"></div>
+    <div style="position:relative;z-index:1;text-align:center;color:#fff;padding:32px;user-select:none">
+      <div style="font-size:.75rem;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-bottom:14px">
+        ${DEFAULT_ROLES[u.role]?.label || u.role} &nbsp;·&nbsp; ${currentTeam?.name || 'CE Europa'}
+      </div>
+      <div style="font-family:var(--font-display);font-size:clamp(2.6rem,8vw,5.5rem);letter-spacing:.07em;text-transform:uppercase;line-height:.9;text-shadow:0 4px 32px rgba(0,0,0,.5)">
+        Benvingut/da,<br>${firstName}
+      </div>
+      <div style="width:56px;height:3px;background:rgba(255,255,255,.4);margin:22px auto;border-radius:2px"></div>
+      <div style="font-size:.8rem;opacity:.6;letter-spacing:.06em">
+        ${new Date().toLocaleDateString('ca-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
       </div>
     </div>
-    `).join('')}
-  </div>
-  ` : ''}
-
-  <div class="grid grid-2">
-    ${perms.squad ? `
-    <div class="card">
-      <div class="stat-label">Plantilla</div>
-      <div class="stat-value">${players.length}</div>
-      <div class="stat-meta">jugadors registrats</div>
-    </div>
-    ` : ''}
-    ${perms.tasks ? `
-    <div class="card">
-      <div class="stat-label">Tasques pendents</div>
-      <div class="stat-value">${pending}</div>
-      <div class="stat-meta">de ${tasks.length} totals</div>
-    </div>
-    ` : ''}
-  </div>
-  `;
+  </div>`;
 }
 
 // ── SQUAD ──────────────────────────────────────────────────
 
 function renderSquad() {
-  const players = DB.players();
-  const readOnly = currentUser.role === 'sporting_director';
+  const allPeople = DB.players();
+  const players   = allPeople.filter(p => p.person_type !== 'staff');
+  const staffList = allPeople.filter(p => p.person_type === 'staff');
+  const readOnly  = currentUser.role === 'sporting_director';
+  const canEdit   = !readOnly;
+
   return `
   <div class="page-header">
     <div class="page-header-left">
       <div class="page-title">Plantilla</div>
-      <div class="page-subtitle">${players.length} jugadors registrats</div>
+      <div class="page-subtitle">${players.length} jugador${players.length!==1?'s':''} · ${staffList.length} staff</div>
     </div>
     <div class="page-actions">
       <input class="form-input" type="search" id="squad-search" placeholder="Cercar..." style="width:180px">
-      ${!readOnly ? `<button class="btn btn-primary" onclick="openPlayerModal()">${ico('plus')} Nou Jugador</button>` : ''}
+      ${canEdit ? `<button class="btn btn-primary" onclick="openPlayerModal()">${ico('plus')} Nou</button>` : ''}
     </div>
   </div>
   <div class="chips" id="pos-filter" style="margin-bottom:16px">
@@ -97,52 +61,148 @@ function renderSquad() {
     <div class="chip" data-pos="Davanter">Davanters</div>
   </div>
   <div id="squad-grid" class="grid grid-3" style="gap:10px">
-    ${players.map(p => renderPlayerCard(p, readOnly)).join('')}
+    ${players.map(p => renderPlayerCard(p, !canEdit)).join('')}
   </div>
-  <div id="player-modal-container"></div>
-  `;
+
+  ${staffList.length > 0 ? `
+  <div style="margin-top:28px">
+    <div style="font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      Staff tècnic <span class="badge badge-gray">${staffList.length}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${staffList.map(p => renderStaffCard(p, !canEdit)).join('')}
+    </div>
+  </div>` : ''}
+
+  <div id="player-modal-container"></div>`;
+}
+
+function _photoEl(p, size=44) {
+  const initials = ((p.name||'?')[0] + (p.surname||'?')[0]).toUpperCase();
+  if (p.photo_url) {
+    return `<div class="player-photo" style="padding:0;overflow:hidden;border-radius:8px;width:${size}px;height:${size}px;flex-shrink:0">
+      <img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${initials}'">
+    </div>`;
+  }
+  return `<div class="player-photo" style="width:${size}px;height:${size}px;flex-shrink:0">${initials}</div>`;
 }
 
 function renderPlayerCard(p, readOnly=false) {
-  const initials = (p.name[0]+p.surname[0]).toUpperCase();
   return `
   <div class="player-card" data-pos="${p.position}">
-    <div class="shirt-num">${p.number}</div>
-    <div class="player-photo">${initials}</div>
+    <div class="shirt-num">${p.number||'—'}</div>
+    ${_photoEl(p)}
     <div class="player-info">
       <div class="player-name">${p.name} ${p.surname}</div>
-      <div class="player-meta">${p.dob ? calcAge(p.dob)+' anys · ' : ''}Peu ${p.foot==='D'?'dret':'esquerre'}</div>
-      <div class="player-badges">${positionBadge(p.position)}</div>
+      <div class="player-meta">${p.dob ? calcAge(p.dob)+' anys · ' : ''}${p.foot==='E'?'Peu esq.':'Peu dret'}</div>
+      <div class="player-badges">
+        ${positionBadge(p.position)}
+        ${p.doc_url ? `<a href="${p.doc_url}" target="_blank" class="badge badge-blue" style="text-decoration:none" title="Fitxa federativa">📄 Fitxa</a>` : ''}
+      </div>
     </div>
     ${!readOnly ? `
     <div style="display:flex;flex-direction:column;gap:3px;margin-left:auto">
       <button class="btn-icon btn-sm" onclick="openPlayerModal('${p.id}')">${ico('edit')}</button>
       <button class="btn-icon btn-sm" onclick="deletePlayer('${p.id}')" style="color:var(--brand)">${ico('trash')}</button>
+    </div>` : ''}
+  </div>`;
+}
+
+function renderStaffCard(p, readOnly=false) {
+  return `
+  <div class="player-card" style="border-left:3px solid var(--purple)">
+    ${_photoEl(p, 40)}
+    <div class="player-info">
+      <div class="player-name">${p.name} ${p.surname}</div>
+      <div class="player-meta">${p.position || 'Staff tècnic'}</div>
+      <div class="player-badges">
+        <span class="badge badge-purple">Staff</span>
+        ${p.doc_url ? `<a href="${p.doc_url}" target="_blank" class="badge badge-blue" style="text-decoration:none">📄 Doc</a>` : ''}
+      </div>
     </div>
-    ` : ''}
-  </div>
-  `;
+    <div style="margin-left:auto;text-align:right;font-size:.72rem;color:var(--text3)">
+      ${p.phone ? `<div>${p.phone}</div>` : ''}
+      ${p.email ? `<div>${p.email}</div>` : ''}
+    </div>
+    ${!readOnly ? `
+    <div style="display:flex;flex-direction:column;gap:3px;margin-left:8px">
+      <button class="btn-icon btn-sm" onclick="openPlayerModal('${p.id}')">${ico('edit')}</button>
+      <button class="btn-icon btn-sm" onclick="deletePlayer('${p.id}')" style="color:var(--brand)">${ico('trash')}</button>
+    </div>` : ''}
+  </div>`;
+}
+
+/* Previsualització de foto al modal */
+function previewPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const el = document.getElementById('photo-preview-img');
+    if (el) el.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+  };
+  reader.readAsDataURL(file);
 }
 
 function openPlayerModal(id=null) {
   const players = DB.players();
-  const p = id ? players.find(pl=>pl.id===id) : null;
+  const p = id ? players.find(pl => pl.id === id) : null;
+  const isNew = !p;
+  const pType = p?.person_type || 'player';
+
   document.getElementById('player-modal-container').innerHTML = `
   <div class="modal-overlay" id="player-modal">
     <div class="modal modal-lg">
       <div class="modal-header">
-        <div class="modal-title">${p ? 'Editar Jugador' : 'Nou Jugador'}</div>
+        <div class="modal-title">${p ? 'Editar fitxa' : 'Nova fitxa'}</div>
         <button class="btn-icon" onclick="closeModal('player-modal')">${ico('close')}</button>
       </div>
       <div class="modal-body">
+
+        ${isNew ? `
+        <div class="form-group">
+          <label class="form-label">Tipus de perfil</label>
+          <div style="display:flex;gap:20px">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.8125rem;padding:8px 14px;border:1px solid var(--border);border-radius:6px;transition:border-color .15s" id="lbl-player">
+              <input type="radio" name="p-type" value="player" checked onchange="document.getElementById('lbl-player').style.borderColor='var(--brand)';document.getElementById('lbl-staff').style.borderColor='var(--border)'">
+              👟 <strong>Jugador/a</strong>
+            </label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.8125rem;padding:8px 14px;border:1px solid var(--border);border-radius:6px;transition:border-color .15s" id="lbl-staff">
+              <input type="radio" name="p-type" value="staff" onchange="document.getElementById('lbl-staff').style.borderColor='var(--purple)';document.getElementById('lbl-player').style.borderColor='var(--border)'">
+              🦺 <strong>Staff tècnic</strong>
+            </label>
+          </div>
+        </div>
+        ` : `<input type="hidden" id="p-type-hidden" value="${pType}">`}
+
+        <div class="form-group">
+          <label class="form-label">Foto</label>
+          <div style="display:flex;align-items:center;gap:14px">
+            <div id="photo-preview-img" style="width:72px;height:72px;border-radius:10px;background:var(--bg3);border:2px dashed var(--border2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.6rem">
+              ${p?.photo_url ? `<img src="${p.photo_url}" style="width:100%;height:100%;object-fit:cover">` : '📷'}
+            </div>
+            <div>
+              <input type="file" id="p-photo" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewPhoto(this)">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('p-photo').click()">
+                ${ico('edit')} ${p?.photo_url ? 'Canviar foto' : 'Afegir foto'}
+              </button>
+              <div style="font-size:.68rem;color:var(--text3);margin-top:5px">JPG, PNG o WebP · Màx. 2 MB</div>
+            </div>
+          </div>
+        </div>
+
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Nom</label><input class="form-input" id="p-name" value="${p?.name||''}"></div>
-          <div class="form-group"><label class="form-label">Cognom</label><input class="form-input" id="p-surname" value="${p?.surname||''}"></div>
+          <div class="form-group"><label class="form-label">Nom *</label><input class="form-input" id="p-name" value="${p?.name||''}"></div>
+          <div class="form-group"><label class="form-label">Cognom *</label><input class="form-input" id="p-surname" value="${p?.surname||''}"></div>
         </div>
         <div class="form-row-3">
-          <div class="form-group"><label class="form-label">Data Naix.</label><input class="form-input" type="date" id="p-dob" value="${p?.dob||''}"></div>
-          <div class="form-group"><label class="form-label">Posició</label>
-            <select class="form-select" id="p-pos">${['Porter','Defensa Central','Lateral Dret','Lateral Esquerre','Migcampista','Extrem Dret','Extrem Esquerre','Davanter'].map(pos=>`<option ${p?.position===pos?'selected':''}>${pos}</option>`).join('')}</select>
+          <div class="form-group"><label class="form-label">Data naix.</label><input class="form-input" type="date" id="p-dob" value="${p?.dob||''}"></div>
+          <div class="form-group"><label class="form-label">Posició / Rol</label>
+            <input class="form-input" id="p-pos" placeholder="Posició o rol" value="${p?.position||''}" list="p-pos-datalist">
+            <datalist id="p-pos-datalist">
+              ${['Porter','Defensa Central','Lateral Dret','Lateral Esquerre','Migcampista','Extrem Dret','Extrem Esquerre','Davanter',
+                 'Segon entrenador/a','Preparador/a físic','Analista','Fisioterapeuta','Delegat/da','Metge/essa'].map(o=>`<option>${o}</option>`).join('')}
+            </datalist>
           </div>
           <div class="form-group"><label class="form-label">Dorsal</label><input class="form-input" type="number" id="p-number" value="${p?.number||''}"></div>
         </div>
@@ -157,15 +217,28 @@ function openPlayerModal(id=null) {
             <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.8125rem"><input type="radio" name="p-foot" value="E" ${p?.foot==='E'?'checked':''}>Esquerre</label>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="p-notes">${p?.notes||''}</textarea></div>
-        ${!p ? `
+        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="p-notes" style="min-height:60px">${p?.notes||''}</textarea></div>
+
+        <div class="form-group">
+          <label class="form-label">Fitxa federativa (PDF)</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            ${p?.doc_url ? `<a href="${p.doc_url}" target="_blank" class="btn btn-ghost btn-sm">${ico('arrow')} Veure fitxa actual</a>` : ''}
+            <input type="file" id="p-doc" accept=".pdf" style="display:none" onchange="document.getElementById('p-doc-name').textContent=this.files[0]?.name||''">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('p-doc').click()">
+              ${ico('plus')} ${p?.doc_url ? 'Canviar PDF' : 'Pujar fitxa federativa'}
+            </button>
+            <span id="p-doc-name" style="font-size:.72rem;color:var(--text3)"></span>
+          </div>
+        </div>
+
+        ${isNew ? `
         <hr class="divider">
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">📧 Invitació d'accés</div>
+          <div style="font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">📧 Invitació d'accés</div>
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8125rem">
-            <input type="checkbox" id="p-send-invite"> Enviar invitació al jugador per activar el seu compte
+            <input type="checkbox" id="p-send-invite"> Enviar invitació per activar el compte
           </label>
-          <div style="font-size:.72rem;color:var(--text3);margin-top:5px">Requereix que s'hagi introduït un email. Es generarà un enllaç d'activació.</div>
+          <div style="font-size:.7rem;color:var(--text3);margin-top:4px">Requereix email. Obrirà el client de correu amb el missatge preparat.</div>
         </div>` : ''}
       </div>
       <div class="modal-footer">
@@ -177,36 +250,72 @@ function openPlayerModal(id=null) {
 }
 
 async function savePlayer(id) {
-  const players = DB.players();
+  const existingP = id ? DB.players().find(p => p.id === id) : null;
+
+  /* Determinar el tipus */
+  const personType = document.querySelector('input[name="p-type"]:checked')?.value
+    || document.getElementById('p-type-hidden')?.value
+    || existingP?.person_type || 'player';
+
   const data = {
-    name:     document.getElementById('p-name').value.trim(),
-    surname:  document.getElementById('p-surname').value.trim(),
-    dob:      document.getElementById('p-dob').value,
-    position: document.getElementById('p-pos').value,
-    number:   parseInt(document.getElementById('p-number').value)||0,
-    phone:    document.getElementById('p-phone').value.trim(),
-    email:    document.getElementById('p-email').value.trim(),
-    foot:     document.querySelector('input[name="p-foot"]:checked')?.value||'D',
-    notes:    document.getElementById('p-notes').value.trim(),
+    name:        document.getElementById('p-name').value.trim(),
+    surname:     document.getElementById('p-surname').value.trim(),
+    dob:         document.getElementById('p-dob').value,
+    position:    document.getElementById('p-pos').value.trim(),
+    number:      parseInt(document.getElementById('p-number').value)||0,
+    phone:       document.getElementById('p-phone').value.trim(),
+    email:       document.getElementById('p-email').value.trim(),
+    foot:        document.querySelector('input[name="p-foot"]:checked')?.value||'D',
+    notes:       document.getElementById('p-notes').value.trim(),
+    person_type: personType,
+    photo_url:   existingP?.photo_url || '',
+    doc_url:     existingP?.doc_url   || '',
   };
   if (!data.name||!data.surname) { toast('Nom i cognom obligatoris','error'); return; }
 
   const playerId = id || uid();
+
+  /* Upload foto */
+  const photoFile = document.getElementById('p-photo')?.files[0];
+  if (photoFile) {
+    if (photoFile.size > 2*1024*1024) { toast('La foto supera els 2 MB','error'); return; }
+    try { data.photo_url = await uploadPlayerPhoto(playerId, photoFile); }
+    catch(e) { toast('Error en pujar la foto','error'); console.error(e); }
+  }
+
+  /* Upload PDF */
+  const docFile = document.getElementById('p-doc')?.files[0];
+  if (docFile) {
+    if (docFile.size > 10*1024*1024) { toast('El PDF supera els 10 MB','error'); return; }
+    try { data.doc_url = await uploadPlayerDoc(playerId, docFile); }
+    catch(e) { toast('Error en pujar el PDF','error'); console.error(e); }
+  }
   if (id) { const i=players.findIndex(p=>p.id===id); if(i!==-1) players[i]={...players[i],...data}; }
   else     players.push({ id:playerId, ...data });
   DB.savePlayers(players);
+
+  /* Afegir jugadors nous a "No convocat" (no el staff) */
+  if (!id && personType === 'player') {
+    const sel = DB.selection();
+    const inSelected    = (sel.selected    || []).includes(playerId);
+    const inNotSelected = (sel.notSelected || []).includes(playerId);
+    if (!inSelected && !inNotSelected) {
+      sel.notSelected = [...(sel.notSelected || []), playerId];
+      DB.saveSelection(sel);
+    }
+  }
 
   /* Invitació (només en creació) */
   const sendInvite = !id && document.getElementById('p-send-invite')?.checked;
   if (sendInvite) {
     if (!data.email) { toast('Cal un email per enviar la invitació','error'); closeModal('player-modal'); navigate('squad'); return; }
     closeModal('player-modal');
-    await _sendPlayerInvitation(playerId, data);
+    await _sendPlayerInvitation(playerId, { ...data, role: personType });
     return;
   }
 
   closeModal('player-modal');
-  toast('Jugador desat','success');
+  toast(`${personType === 'staff' ? 'Staff' : 'Jugador/a'} desat/da correctament`, 'success');
   navigate('squad');
 }
 
@@ -235,9 +344,9 @@ async function _sendPlayerInvitation(playerId, playerData) {
           <button class="btn-icon" onclick="closeModal('invite-result-modal');navigate('squad')">${ico('close')}</button>
         </div>
         <div class="modal-body">
-          ${emailSent
-            ? `<div style="padding:10px 14px;background:var(--green-dim);border:1px solid rgba(22,163,74,.3);border-radius:6px;font-size:.8125rem;color:var(--green)">${ico('check')} Email enviat a <strong>${playerData.email}</strong></div>`
-            : `<div style="padding:10px 14px;background:var(--brand-dim);border:1px solid rgba(2,46,145,.2);border-radius:6px;font-size:.8125rem;color:var(--brand)">ℹ️ Email no configurat. Comparteix l'enllaç manualment.</div>`}
+          ${emailSent === 'resend'
+            ? `<div style="padding:10px 14px;background:var(--green-dim);border:1px solid rgba(22,163,74,.3);border-radius:6px;font-size:.8125rem;color:var(--green)">${ico('check')} Email enviat automàticament a <strong>${playerData.email}</strong></div>`
+            : `<div style="padding:10px 14px;background:var(--green-dim);border:1px solid rgba(22,163,74,.3);border-radius:6px;font-size:.8125rem;color:var(--green)">${ico('check')} S'ha obert el teu client de correu amb el missatge preparat per a <strong>${playerData.email}</strong>. Prem Enviar per completar la invitació.</div>`}
           <div class="form-group" style="margin-top:12px">
             <label class="form-label">Enllaç d'activació (vàlid 7 dies)</label>
             <div style="display:flex;gap:6px">

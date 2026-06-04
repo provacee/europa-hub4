@@ -538,7 +538,16 @@ function renderSelection() {
   const players = DB.players();
   const isCoach = ['coach','administrator','sporting_director'].includes(currentUser.role);
 
-  const selected    = players.filter(p => (sel.selected    || []).includes(p.id));
+  const selectedIds    = sel.selected    || [];
+  const notSelectedIds = sel.notSelected || [];
+  /* Jugadors nous que no estan en cap llista → van a "No convocat" */
+  const uncategorized = players.filter(p => !selectedIds.includes(p.id) && !notSelectedIds.includes(p.id));
+  if (uncategorized.length > 0) {
+    const updatedSel = { ...sel, notSelected: [...notSelectedIds, ...uncategorized.map(p => p.id)] };
+    DB.saveSelection(updatedSel);
+    sel.notSelected = updatedSel.notSelected;
+  }
+  const selected    = players.filter(p => selectedIds.includes(p.id));
   const notSelected = players.filter(p => (sel.notSelected || []).includes(p.id));
 
   return `
@@ -702,6 +711,7 @@ function renderPlayerSelection() {
   const players  = DB.players();
   const selected = players.filter(p => (sel.selected || []).includes(p.id));
   const myPid    = currentUser.player_id;
+
   const isCalled = myPid && (sel.selected || []).includes(myPid);
 
   return `

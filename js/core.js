@@ -19,21 +19,23 @@ const DEFAULT_USERS = [
 const DEFAULT_ROLES = {
   administrator:     { label:'Administrador',      color:'red'    },
   sporting_director: { label:'Director Esportiu',  color:'blue'   },
-  coach:             { label:'Entrenador',          color:'blue'   },
-  player:            { label:'Jugador',             color:'green'  },
+  coach:             { label:'Entrenador/a',        color:'blue'   },
+  staff:             { label:'Staff tècnic',        color:'purple' },
+  player:            { label:'Jugador/a',           color:'green'  },
   communication:     { label:'Comunicació',         color:'yellow' },
   office:            { label:'Oficina',             color:'gray'   },
   member:            { label:'Soci',                color:'gray'   },
 };
 
 const DEFAULT_PERMISSIONS = {
-  administrator:     { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:true,  office:true,  members:true,  admin:true,  teams:true  },
-  sporting_director: { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:false, office:false, members:false, admin:false, teams:true  },
-  coach:             { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:true  },
-  player:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:true,  scouting:false,  communication:false, office:false, members:false, admin:false, teams:false },
-  communication:     { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:true,  office:false, members:false, admin:false, teams:false },
-  office:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:true,  members:false, admin:false, teams:false },
-  member:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:false, members:true,  admin:false, teams:false },
+  administrator:     { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:true,  office:true,  members:true,  admin:true,  teams:true,  staff_view:false },
+  sporting_director: { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:false, office:false, members:false, admin:false, teams:true,  staff_view:false },
+  coach:             { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:true,  staff_view:false },
+  staff:             { home:true,  squad:false, tactical:true,  training:true,  veo:true,  tasks:true,  wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:true  },
+  player:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:true,  scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:false },
+  communication:     { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:true,  office:false, members:false, admin:false, teams:false, staff_view:false },
+  office:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:true,  members:false, admin:false, teams:false, staff_view:false },
+  member:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:false, members:true,  admin:false, teams:false, staff_view:false },
 };
 
 const DEFAULT_PLAYERS = [
@@ -574,6 +576,10 @@ function buildNavItems() {
   if (can('communication'))  { items.push({ section:'Comunicació' }); items.push({ page:'communication', label:'Comunicació', icon:ico('comm') }); }
   if (can('office'))         { items.push({ section:'Oficina' }); items.push({ page:'office', label:'Oficina', icon:ico('office') }); }
   if (can('members'))        { items.push({ section:'Socis' }); items.push({ page:'members', label:'Àrea de Soci', icon:ico('member') }); }
+  if (can('staff_view')) {
+    items.push({ section:'Partits' });
+    items.push({ page:'player_selection', label:'Convocatòria', icon:ico('selection') });
+  }
   if (can('teams')) {
     items.push({ section:'Gestió' });
     items.push({ page:'teams', label:'Equips', icon:ico('users') });
