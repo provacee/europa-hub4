@@ -244,9 +244,11 @@ function renderTeams() {
               ${teamUsers.length > 8 ? `<span style="font-size:.72rem;color:var(--text3);padding:3px 8px">+${teamUsers.length-8} més</span>` : ''}
             </div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
+          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
             ${!isActive ? `<button class="btn btn-ghost btn-sm" onclick="handleSwitchTeam('${t.id}')">Accedir →</button>` : ''}
-            ${isAdmin ? `<button class="btn-icon" onclick="openTeamMembersModal('${t.id}')">${ico('users')}</button>` : ''}
+            ${isAdmin ? `<button class="btn-icon" title="Membres" onclick="openTeamMembersModal('${t.id}')">${ico('users')}</button>` : ''}
+            <button class="btn-icon" title="Editar" onclick="openEditTeamModal('${t.id}')">${ico('edit')}</button>
+            ${!isActive ? `<button class="btn-icon" title="Suprimir" onclick="deleteTeam('${t.id}')" style="color:var(--red)">${ico('trash')}</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -290,6 +292,80 @@ async function saveNewTeam() {
   const team = await DB.createTeam(name, desc, season);
   closeModal('create-team-modal');
   toast(`Equip "${name}" creat!`, 'success');
+  navigate('teams');
+}
+
+function openEditTeamModal(teamId) {
+  const team = DB.teams().find(t => t.id === teamId);
+  if (!team) return;
+  document.getElementById('team-modal-container').innerHTML = `
+  <div class="modal-overlay" id="edit-team-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Editar Equip</div>
+        <button class="btn-icon" onclick="closeModal('edit-team-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nom de l'equip *</label>
+          <input class="form-input" id="edit-team-name" value="${team.name}">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Temporada</label>
+            <input class="form-input" id="edit-team-season" value="${team.season||''}" placeholder="2025-26">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descripció</label>
+            <input class="form-input" id="edit-team-desc" value="${team.description||''}" placeholder="Opcional">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('edit-team-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="saveEditTeam('${teamId}')">${ico('check')} Desar canvis</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function saveEditTeam(teamId) {
+  const name   = document.getElementById('edit-team-name').value.trim();
+  const season = document.getElementById('edit-team-season').value.trim();
+  const desc   = document.getElementById('edit-team-desc').value.trim();
+  if (!name) { toast('El nom és obligatori', 'error'); return; }
+
+  const teams = _cache.teams;
+  const idx   = teams.findIndex(t => t.id === teamId);
+  if (idx !== -1) {
+    teams[idx] = { ...teams[idx], name, season, description: desc };
+    if (USE_SUPABASE) {
+      await DB.sb().from('teams').update({ name, season, description: desc }).eq('id', teamId);
+    } else {
+      lsSet('eh_teams', teams);
+    }
+    if (currentTeam?.id === teamId) currentTeam = teams[idx];
+  }
+  closeModal('edit-team-modal');
+  toast('Equip actualitzat', 'success');
+  navigate('teams');
+}
+
+async function deleteTeam(teamId) {
+  const team = DB.teams().find(t => t.id === teamId);
+  if (!team) return;
+  if (!confirm(`Suprimir l'equip "${team.name}"?\n\nAixò eliminarà l'equip i tots els seus membres. Les dades (jugadors, entrenaments, etc.) quedaran a la base de dades però sense equip assignat.`)) return;
+
+  if (USE_SUPABASE) {
+    await DB.sb().from('team_members').delete().eq('team_id', teamId);
+    await DB.sb().from('teams').delete().eq('id', teamId);
+  }
+  _cache.teams       = _cache.teams.filter(t => t.id !== teamId);
+  _cache.teamMembers = _cache.teamMembers.filter(m => m.team_id !== teamId);
+  lsSet('eh_teams',   _cache.teams);
+  lsSet('eh_members', _cache.teamMembers);
+
+  toast(`Equip "${team.name}" eliminat`, 'success');
   navigate('teams');
 }
 
@@ -362,30 +438,61 @@ function renderAdminUsers() {
   const users = DB.users();
   return `
   <div class="page-header">
-    <div class="page-header-left"><div class="page-title">Usuaris</div><div class="page-subtitle">${users.length} usuaris al sistema</div></div>
-    <div class="page-actions"><button class="btn btn-primary" onclick="openUserModal()">${ico('plus')} Nou Usuari</button></div>
+    <div class="page-header-left">
+      <div class="page-title">Usuaris</div>
+      <div class="page-subtitle">${users.length} usuaris al sistema</div>
+    </div>
+    <div class="page-actions">
+      <input class="form-input" type="search" id="user-search"
+        placeholder="Cercar per nom, usuari o rol…" style="width:220px"
+        oninput="filterAdminUsers(this.value)">
+      <button class="btn btn-primary" onclick="openUserModal()">${ico('plus')} Nou Usuari</button>
+    </div>
   </div>
   <div class="card">
     <div class="table-wrap">
       <table>
         <thead><tr><th>Nom</th><th>Usuari</th><th>Rol</th><th>Contrasenya</th><th></th></tr></thead>
-        <tbody>
-          ${users.map(u=>`
-          <tr>
-            <td><div style="display:flex;align-items:center;gap:9px"><div class="avatar sm">${u.avatar}</div><span style="color:var(--text);font-weight:500">${u.name}</span></div></td>
-            <td><code style="font-family:var(--font-mono);font-size:.78rem;color:var(--brand)">${u.username}</code></td>
-            <td>${roleBadge(u.role)}</td>
-            <td><code style="font-family:var(--font-mono);font-size:.72rem;color:var(--text3)">${u.password}</code></td>
-            <td><div style="display:flex;gap:4px">
-              <button class="btn-icon btn-sm" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
-              ${u.id!==currentUser.id ? `<button class="btn-icon btn-sm" onclick="deleteUser('${u.id}')" style="color:var(--brand)">${ico('trash')}</button>` : ''}
-            </div></td>
-          </tr>`).join('')}
+        <tbody id="users-tbody">
+          ${users.map(u => _userRow(u)).join('')}
         </tbody>
       </table>
     </div>
+    <div id="users-empty" style="display:none;padding:24px;text-align:center;color:var(--text3);font-size:.8125rem">
+      Cap usuari coincideix amb la cerca.
+    </div>
   </div>
   <div id="user-modal-container"></div>`;
+}
+
+function _userRow(u) {
+  return `
+  <tr data-search="${(u.name + ' ' + u.username + ' ' + (DEFAULT_ROLES[u.role]?.label||u.role)).toLowerCase()}">
+    <td><div style="display:flex;align-items:center;gap:9px">
+      <div class="avatar sm">${u.avatar}</div>
+      <span style="color:var(--text);font-weight:500">${u.name}</span>
+    </div></td>
+    <td><code style="font-family:var(--font-mono);font-size:.78rem;color:var(--brand)">${u.username}</code></td>
+    <td>${roleBadge(u.role)}</td>
+    <td><code style="font-family:var(--font-mono);font-size:.72rem;color:var(--text3)">${u.password}</code></td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn-icon btn-sm" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
+      ${u.id !== currentUser.id ? `<button class="btn-icon btn-sm" onclick="deleteUser('${u.id}')" style="color:var(--brand)">${ico('trash')}</button>` : ''}
+    </div></td>
+  </tr>`;
+}
+
+function filterAdminUsers(query) {
+  const q     = query.toLowerCase().trim();
+  const rows  = document.querySelectorAll('#users-tbody tr');
+  let visible = 0;
+  rows.forEach(row => {
+    const match = !q || row.dataset.search.includes(q);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  const emptyEl = document.getElementById('users-empty');
+  if (emptyEl) emptyEl.style.display = visible === 0 ? 'block' : 'none';
 }
 
 function openUserModal(id=null) {

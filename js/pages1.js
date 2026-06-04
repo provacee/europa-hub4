@@ -290,8 +290,10 @@ async function savePlayer(id) {
     try { data.doc_url = await uploadPlayerDoc(playerId, docFile); }
     catch(e) { toast('Error en pujar el PDF','error'); console.error(e); }
   }
-  if (id) { const i=players.findIndex(p=>p.id===id); if(i!==-1) players[i]={...players[i],...data}; }
-  else     players.push({ id:playerId, ...data });
+
+  const players = DB.players();
+  if (id) { const i = players.findIndex(p => p.id === id); if (i !== -1) players[i] = { ...players[i], ...data }; }
+  else     players.push({ id: playerId, ...data });
   DB.savePlayers(players);
 
   /* Afegir jugadors nous a "No convocat" (no el staff) */
