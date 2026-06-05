@@ -120,24 +120,30 @@ let currentTeam   = { id:'default', name:'CE Europa' };
 
 async function initTeam() {
   if (!USE_SUPABASE) {
-    currentTeamId = 'default';
-    currentTeam   = (_cache.teams || [])[0] || { id:'default', name:'CE Europa — Primer Equip' };
+    const myTeams = DB.myTeams();
+    if (!myTeams || myTeams.length === 0) {
+      currentTeamId = null;
+      currentTeam   = null;
+      return;
+    }
+    const savedId   = lsGet('eh_current_team');
+    const savedTeam = myTeams.find(t => t.id === savedId);
+    const team      = savedTeam || myTeams[0];
+    currentTeamId   = team.id;
+    currentTeam     = team;
     loadEntityDataFromLocalStorage();
     return;
   }
 
-  let myTeams = DB.myTeams();
+  const myTeams = DB.myTeams();
 
-  /* Si l'usuari no té cap equip assignat, l'afegim a l'equip per defecte */
+  /* Si no té cap equip, no l'assignem automàticament */
   if (!myTeams || myTeams.length === 0) {
-    await DB.addTeamMember('default', currentUser.id);
-    /* Recarregar membres */
-    const { data: members } = await DB.sb().from('team_members').select('*');
-    _cache.teamMembers = members || [];
-    myTeams = DB.myTeams();
+    currentTeamId = null;
+    currentTeam   = null;
+    return;
   }
 
-  /* Seleccionar l'últim equip usat, o el primer disponible — sense selector */
   const savedId   = lsGet('eh_current_team');
   const savedTeam = myTeams.find(t => t.id === savedId);
   await switchTeam(savedTeam || myTeams[0]);
@@ -182,8 +188,40 @@ function restoreSession() {
 
 function can(perm) {
   if (!currentUser) return false;
+  const overrides = (lsGet('eh_user_perms') || {})[currentUser.id];
+  if (overrides && overrides.hasOwnProperty(perm)) return !!overrides[perm];
   const perms = DB.permissions();
   return !!(perms[currentUser.role] || {})[perm];
+}
+
+function saveUserPerm(userId, perm, value) {
+  const all = lsGet('eh_user_perms') || {};
+  if (!all[userId]) all[userId] = {};
+  all[userId][perm] = value;
+  lsSet('eh_user_perms', all);
+}
+
+function getUserEffectivePerms(userId) {
+  const user = DB.users().find(u => u.id === userId);
+  if (!user) return {};
+  const rolePerms = DB.permissions()[user.role] || {};
+  const overrides = (lsGet('eh_user_perms') || {})[userId] || {};
+  return { ...rolePerms, ...overrides };
+}
+
+function joinViaLink() {
+  const input = document.getElementById('invite-link-input');
+  const link  = input?.value?.trim();
+  if (!link) return toast('Enganxa un enllaç d\'invitació', 'error');
+  const match = link.match(/#invite-(.+)/) || link.match(/invite[/-](.+)/);
+  if (!match) return toast('Enllaç no vàlid. Ha de contenir #invite-TOKEN', 'error');
+  window.location.hash = `invite-${match[1].trim()}`;
+  window.location.reload();
+}
+
+function deleteMessage(msgId) {
+  lsSet('eh_messages', getMessages().filter(m => m.id !== msgId));
+  navigate('messaging');
 }
 
 // ── Router ─────────────────────────────────────────────────
@@ -435,6 +473,34 @@ function bindInviteAccept(token) {
       showErr(e.message || 'Error en activar el compte');
     }
   };
+}
+
+// ── NO TEAM STATE ──────────────────────────────────────────
+
+function renderNoTeam() {
+  return `
+  <div class="loading-screen">
+    <div class="loading-bg"></div>
+    <img src="assets/escut.svg" class="loading-logo" alt="CE Europa" style="opacity:.6;filter:none">
+    <div style="position:relative;z-index:1;text-align:center;max-width:340px;padding:0 24px">
+      <div style="font-family:var(--font-display);font-size:1.5rem;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.85);margin-bottom:10px">
+        Sense equip assignat
+      </div>
+      <div style="font-size:.8rem;color:rgba(255,255,255,.4);line-height:1.6;margin-bottom:28px">
+        El teu compte encara no pertany a cap equip.<br>
+        Demana a un administrador que t'afegeixi o utilitza un enllaç d'invitació.
+      </div>
+      <button onclick="logout()" style="
+        background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+        color:rgba(255,255,255,.7);padding:10px 22px;border-radius:10px;
+        font-family:var(--font);font-size:.8rem;cursor:pointer;
+        transition:all .15s ease;
+      " onmouseover="this.style.background='rgba(255,255,255,.16)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
+        Tancar sessió
+      </button>
+    </div>
+  </div>
+  <div id="toast-container"></div>`;
 }
 
 // ── RENDER APP ─────────────────────────────────────────────
@@ -739,7 +805,7 @@ function bindLogin() {
     }
     document.getElementById('app').innerHTML = renderLoading();
     await initTeam();
-    navigate('desktop');
+    navigate(currentUser?.role === 'administrator' ? 'admin_dashboard' : 'desktop');
   });
 }
 
@@ -821,7 +887,7 @@ function buildNavItems() {
 
 function renderWindowBar() {
   const titles = {
-    home:'Inici', settings:'Configuració', squad:'Plantilla', tactical:'Pissarra Tàctica', training:'Entrenaments',
+    home:'Inici', settings:'Configuració', admin_dashboard:'Tauler Admin', squad:'Plantilla', tactical:'Pissarra Tàctica', training:'Entrenaments',
     veo:'Anàlisi VEO', tasks:'Tasques Staff', wellness:'Wellness', selection:'Convocatòria',
     player_training:'Entrenaments', player_veo:'Anàlisi VEO', player_selection:'Convocatòria', player_wellness:'Wellness',
     scouting:'Scouting', communication:'Comunicació', office:'Oficina', members:'Àrea de Soci',
@@ -880,6 +946,7 @@ function renderPage() {
     case 'settings':          return renderSettings();
     case 'messaging':         return renderMessaging();
     case 'email':             return renderEmail();
+    case 'admin_dashboard':   return renderAdminDashboard();
     default: return `<div class="empty-state"><h3>Pàgina no trobada</h3></div>`;
   }
 }

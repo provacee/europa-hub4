@@ -35,7 +35,42 @@ function renderHome() {
 
 let _squadTab = 'players';
 
+function renderSquadNoTeam() {
+  const canCreate = can('teams');
+  return `
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">Plantilla</div>
+      <div class="page-subtitle">Encara no pertanys a cap equip</div>
+    </div>
+    ${canCreate ? `<div class="page-actions"><button class="btn btn-primary" onclick="openCreateTeamModal()">${ico('plus')} Crear Equip</button></div>` : ''}
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:28px;padding:48px 0;max-width:480px;margin:0 auto;text-align:center">
+    <div style="width:72px;height:72px;border-radius:20px;background:var(--brand-dim);border:1px solid var(--brand-dim);display:flex;align-items:center;justify-content:center;opacity:.6">
+      ${ico('users')}
+    </div>
+    <div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:8px">Sense equip assignat</div>
+      <div style="font-size:.8rem;color:var(--text3);line-height:1.7">
+        Per accedir a la plantilla necessites pertànyer a un equip.<br>
+        ${canCreate ? 'Pots crear-ne un de nou o unir-te a un existent amb un enllaç d\'invitació.' : 'Demana a un administrador que t\'afegeixi o utilitza un enllaç d\'invitació.'}
+      </div>
+    </div>
+    <div class="invite-join-box">
+      <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Unir-se amb enllaç d'invitació</div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="invite-link-input" placeholder="https://…/#invite-TOKEN" style="flex:1">
+        <button class="btn btn-primary" onclick="joinViaLink()">Unir-se</button>
+      </div>
+      <div style="font-size:.7rem;color:var(--text3);margin-top:8px">Enganxa aquí l'enllaç que has rebut per correu o que t'han compartit</div>
+    </div>
+    ${canCreate ? `<div id="team-modal-container"></div>` : ''}
+  </div>`;
+}
+
 function renderSquad() {
+  if (!currentTeam) return renderSquadNoTeam();
+
   const allPeople = DB.players();
   const players   = allPeople.filter(p => p.person_type !== 'staff');
   const staffList = allPeople.filter(p => p.person_type === 'staff');

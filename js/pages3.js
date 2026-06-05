@@ -144,9 +144,13 @@ function renderMessaging() {
   const msgHtml = active ? active.msgs.map(m => {
     const mine = m.from === currentUser.id;
     const d = new Date(m.date).toLocaleTimeString('ca-ES',{hour:'2-digit',minute:'2-digit'});
-    return `<div class="msg-bubble ${mine?'msg-mine':'msg-theirs'}">
-      <div class="msg-text">${m.text}</div>
-      <div class="msg-time">${d}</div>
+    return `<div class="msg-bubble-wrap ${mine?'wrap-mine':'wrap-theirs'}">
+      ${mine ? `<button class="msg-delete-btn" onclick="deleteMessage('${m.id}')" title="Esborrar">${ico('trash')}</button>` : ''}
+      <div class="msg-bubble ${mine?'msg-mine':'msg-theirs'}">
+        <div class="msg-text">${m.text}</div>
+        <div class="msg-time">${d}</div>
+      </div>
+      ${!mine ? `<button class="msg-delete-btn" onclick="deleteMessage('${m.id}')" title="Esborrar">${ico('trash')}</button>` : ''}
     </div>`;
   }).join('') : '';
 
@@ -792,7 +796,8 @@ function _userRow(u) {
     <td>${roleBadge(u.role)}</td>
     <td><code style="font-family:var(--font-mono);font-size:.72rem;color:var(--text3)">${u.password}</code></td>
     <td><div style="display:flex;gap:4px">
-      <button class="btn-icon btn-sm" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
+      <button class="btn-icon btn-sm" title="Editar" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
+      <button class="btn-icon btn-sm" title="Permisos individuals" onclick="openUserPermsModal('${u.id}')">${ico('shield')}</button>
       ${u.id !== currentUser.id ? `<button class="btn-icon btn-sm" onclick="deleteUser('${u.id}')" style="color:var(--brand)">${ico('trash')}</button>` : ''}
     </div></td>
   </tr>`;
@@ -882,6 +887,158 @@ function renderAdminRoles() {
 }
 
 // ── ADMIN: PERMISSIONS ─────────────────────────────────────
+
+// ── ADMIN DASHBOARD ─────────────────────────────────────────
+
+function renderAdminDashboard() {
+  const users = DB.users();
+  const perms = DB.permissions();
+  const PERM_KEYS = [
+    {key:'squad',label:'Plantilla'},{key:'tactical',label:'Pissarra'},{key:'training',label:'Entrenaments'},
+    {key:'wellness',label:'Wellness'},{key:'selection',label:'Convocatòria'},{key:'scouting',label:'Scouting'},
+    {key:'communication',label:'Comunicació'},{key:'office',label:'Oficina'},{key:'admin',label:'Admin'},
+  ];
+  return `
+  <div class="page-header" style="margin-bottom:20px">
+    <div class="page-header-left">
+      <div class="page-title">Tauler Admin</div>
+      <div class="page-subtitle">Gestió d'usuaris i permisos en un sol lloc</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="openUserModal()">${ico('plus')} Nou Usuari</button>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)">Perfils — ${users.length} usuaris</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('admin_users')">Veure tot →</button>
+      </div>
+      <div style="max-height:340px;overflow-y:auto">
+        ${users.map(u => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border)">
+          <div class="avatar sm">${u.avatar}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.8rem;font-weight:600;color:var(--text)">${u.name}</div>
+            <div style="font-size:.68rem;color:var(--text3)">${DEFAULT_ROLES[u.role]?.label||u.role}</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="btn-icon" style="padding:5px" title="Editar" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
+            <button class="btn-icon" style="padding:5px" title="Permisos" onclick="openUserPermsModal('${u.id}')">${ico('shield')}</button>
+          </div>
+        </div>`).join('')}
+      </div>
+      <div id="user-modal-container"></div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)">Permisos per Rol</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('admin_perms')">Veure tot →</button>
+      </div>
+      <div style="overflow-x:auto;max-height:340px">
+        <table style="min-width:100%;font-size:.72rem">
+          <thead><tr>
+            <th style="padding:8px 14px;position:sticky;top:0;background:var(--bg2)">Mòdul</th>
+            ${Object.keys(DEFAULT_ROLES).map(r=>`<th style="text-align:center;padding:8px 6px;position:sticky;top:0;background:var(--bg2);font-size:.6rem">${DEFAULT_ROLES[r].label.split(' ')[0]}</th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${PERM_KEYS.map(({key,label})=>`
+            <tr>
+              <td style="padding:7px 14px;color:var(--text2);font-weight:500">${label}</td>
+              ${Object.keys(DEFAULT_ROLES).map(role=>{
+                const checked = !!(perms[role]?.[key]);
+                return `<td style="text-align:center;padding:7px 4px"><div style="width:8px;height:8px;border-radius:50%;margin:0 auto;background:${checked?'var(--brand)':'var(--border2)'};${checked?'box-shadow:0 0 4px var(--brand-glow)':''}"></div></td>`;
+              }).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+// ── PER-USER PERMISSIONS ─────────────────────────────────────
+
+function openUserPermsModal(userId) {
+  const user      = DB.users().find(u => u.id === userId);
+  if (!user) return;
+  const effective = getUserEffectivePerms(userId);
+  const overrides = (lsGet('eh_user_perms') || {})[userId] || {};
+  const rolePerms = DB.permissions()[user.role] || {};
+
+  const PERM_KEYS = [
+    {key:'home',label:'Inici'},{key:'squad',label:'Plantilla'},{key:'tactical',label:'Pissarra'},
+    {key:'training',label:'Entrenaments'},{key:'veo',label:'VEO'},{key:'tasks',label:'Tasques'},
+    {key:'wellness',label:'Wellness'},{key:'selection',label:'Convocatòria'},
+    {key:'sporting2',label:'Àrea Esp. 2'},{key:'scouting',label:'Scouting'},
+    {key:'communication',label:'Comunicació'},{key:'office',label:'Oficina'},
+    {key:'members',label:'Socis'},{key:'admin',label:'Administració'},{key:'teams',label:'Equips'},
+  ];
+
+  const container = document.getElementById('user-modal-container') || document.body;
+  container.insertAdjacentHTML('beforeend', `
+  <div class="modal-overlay" id="user-perms-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:10px;flex:1">
+          <div class="avatar">${user.avatar}</div>
+          <div>
+            <div class="modal-title" style="font-size:1.2rem">${user.name}</div>
+            <div style="font-size:.72rem;color:var(--text3)">${DEFAULT_ROLES[user.role]?.label||user.role} — permisos individuals</div>
+          </div>
+        </div>
+        <button class="btn-icon" onclick="closeModal('user-perms-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:.72rem;color:var(--text3);margin-bottom:14px;padding:10px 12px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)">
+          Els permisos en <strong>blau</strong> provenen del rol. Els que modifiques aquí s'apliquen <strong>individualment</strong> i sobreescriuen el rol.
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto;display:block;margin-top:6px" onclick="resetUserPerms('${userId}')">Restablir al rol per defecte</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${PERM_KEYS.map(({key,label}) => {
+            const fromRole    = !!rolePerms[key];
+            const isOverriden = overrides.hasOwnProperty(key);
+            const current     = isOverriden ? overrides[key] : fromRole;
+            return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:var(--bg2);border:1px solid ${isOverriden?'var(--brand)':'var(--border)'}">
+              <div>
+                <div style="font-size:.8rem;font-weight:600">${label}</div>
+                <div style="font-size:.65rem;color:var(--text3)">${isOverriden?'Sobreescrit':'Del rol'}</div>
+              </div>
+              <div class="toggle ${current?'on':''}" onclick="toggleUserPerm('${userId}','${key}',this)"></div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('user-perms-modal')">Tancar</button>
+      </div>
+    </div>
+  </div>`);
+}
+
+function toggleUserPerm(userId, perm, el) {
+  const newVal = !el.classList.contains('on');
+  el.classList.toggle('on', newVal);
+  saveUserPerm(userId, perm, newVal);
+  const row = el.closest('[style*="border:1px"]');
+  if (row) {
+    row.style.border = `1px solid var(--brand)`;
+    row.querySelector('[style*="font-size:.65rem"]').textContent = 'Sobreescrit';
+  }
+  toast(`Permís "${perm}" ${newVal?'activat':'desactivat'} per a ${DB.users().find(u=>u.id===userId)?.name}`, 'success');
+}
+
+function resetUserPerms(userId) {
+  const all = lsGet('eh_user_perms') || {};
+  delete all[userId];
+  lsSet('eh_user_perms', all);
+  closeModal('user-perms-modal');
+  toast('Permisos restablerts al rol per defecte', 'success');
+}
 
 function renderAdminPerms() {
   const perms = DB.permissions();

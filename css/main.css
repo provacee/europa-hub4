@@ -1597,6 +1597,39 @@ html[data-theme="light"] .msg-header { background: #fff; border-bottom-color: #d
 html[data-theme="light"] .msg-compose { background: #fff; border-top-color: #dde4f5; }
 html[data-theme="light"] .msg-theirs .msg-text { background: #fff; border-color: #dde4f5; color: #080f22; }
 
+/* ══ INVITE JOIN BOX ════════════════════════════════════════ */
+
+.invite-join-box {
+  width: 100%; padding: 20px 24px;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.window-body .invite-join-box {
+  background: rgba(12,20,42,.7); border-color: rgba(255,255,255,.08);
+}
+
+/* ══ MESSAGE DELETE ══════════════════════════════════════════ */
+
+.msg-bubble-wrap {
+  display: flex; align-items: flex-end; gap: 6px;
+}
+.wrap-mine  { flex-direction: row; justify-content: flex-end; }
+.wrap-theirs { flex-direction: row-reverse; justify-content: flex-end; }
+.wrap-mine  .msg-bubble { align-items: flex-end; }
+.wrap-theirs .msg-bubble { align-items: flex-start; }
+
+.msg-delete-btn {
+  opacity: 0; width: 24px; height: 24px; border-radius: 6px;
+  background: rgba(185,28,28,.12); border: 1px solid rgba(185,28,28,.2);
+  color: var(--red); cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s ease;
+}
+.msg-delete-btn svg { width: 11px; height: 11px; }
+.msg-delete-btn:hover { background: var(--red); color: #fff; opacity: 1 !important; }
+.msg-bubble-wrap:hover .msg-delete-btn { opacity: .6; }
+
 /* ── Settings upload button ── */
 .settings-wall-upload {
   aspect-ratio: 16/9; border-radius: 12px; cursor: pointer;
