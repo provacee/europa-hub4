@@ -292,7 +292,7 @@ async function saveNewTeam() {
   const team = await DB.createTeam(name, desc, season);
   closeModal('create-team-modal');
   toast(`Equip "${name}" creat!`, 'success');
-  navigate('teams');
+  navigate('squad');
 }
 
 function openEditTeamModal(teamId) {
@@ -348,7 +348,7 @@ async function saveEditTeam(teamId) {
   }
   closeModal('edit-team-modal');
   toast('Equip actualitzat', 'success');
-  navigate('teams');
+  navigate('squad');
 }
 
 async function deleteTeam(teamId) {
@@ -366,7 +366,7 @@ async function deleteTeam(teamId) {
   lsSet('eh_members', _cache.teamMembers);
 
   toast(`Equip "${team.name}" eliminat`, 'success');
-  navigate('teams');
+  navigate('squad');
 }
 
 function openTeamMembersModal(teamId) {

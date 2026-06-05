@@ -188,10 +188,15 @@ function can(perm) {
 
 // ── Router ─────────────────────────────────────────────────
 
-let currentPage = 'home';
+let currentPage = 'desktop';
 
 function navigate(page) {
   currentPage = page;
+  renderApp();
+}
+
+function closeWindow() {
+  currentPage = 'desktop';
   renderApp();
 }
 
@@ -319,7 +324,7 @@ function renderTeamSelector() {
       </div>
       ${can('teams') ? `
       <div style="margin-top:20px;text-align:center">
-        <button class="btn btn-ghost btn-sm" onclick="navigate('teams')" style="font-size:.78rem">
+        <button class="btn btn-ghost btn-sm" onclick="_squadTab='teams';navigate('squad')" style="font-size:.78rem">
           ${ico('plus')} Crear nou equip
         </button>
       </div>` : ''}
@@ -438,20 +443,50 @@ function renderApp() {
     bindLogin();
     return;
   }
+  const isDesktop = currentPage === 'desktop';
   root.innerHTML = `
-    <div class="app-layout">
-      ${renderSidebar()}
-      <div class="main-content">
-        ${renderTopHeader()}
-        <div class="page-body" id="page-body">
+    <div class="desktop">
+      <div class="desktop-overlay"></div>
+<div class="desktop-clock">
+        <div class="clock-time" id="desktop-clock-time"></div>
+        <div class="clock-date" id="desktop-clock-date"></div>
+      </div>
+      <div class="desktop-team-label">
+        <img src="assets/escut.svg" alt="CE Europa">
+        <span class="desktop-team-name">${currentTeam?.name || 'CE Europa'}</span>
+      </div>
+      ${isDesktop ? `
+      <div class="desktop-welcome">
+        <div class="desktop-welcome-name">${currentUser.name.split(' ')[0].toUpperCase()}</div>
+        <div class="desktop-welcome-role">${DEFAULT_ROLES[currentUser.role]?.label || currentUser.role}</div>
+        <div class="desktop-welcome-hint">Selecciona una aplicació</div>
+      </div>` : `
+      <div class="app-window">
+        ${renderWindowBar()}
+        <div class="window-body" id="page-body">
           ${renderPage()}
         </div>
-      </div>
+      </div>`}
+      ${renderTaskbar()}
     </div>
     <div id="toast-container"></div>
   `;
   bindNav();
   bindPageEvents();
+  startClock();
+}
+
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const timeEl = document.getElementById('desktop-clock-time');
+    const dateEl = document.getElementById('desktop-clock-date');
+    if (!timeEl) return;
+    timeEl.textContent = now.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+    dateEl.textContent = now.toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  tick();
+  setInterval(tick, 10000);
 }
 
 // ── LOGIN ──────────────────────────────────────────────────
@@ -459,16 +494,13 @@ function renderApp() {
 function renderLogin() {
   return `
   <div class="login-page">
-    <div class="login-left">
-      <div class="login-visual">
-        <div class="login-logo-big"><img src="assets/escut.svg" alt="CE Europa"></div>
+    <div class="login-center">
+      <div class="login-brand-block">
+        <img src="assets/escut.svg" alt="CE Europa">
         <div class="login-tagline">EUROPA<br>HUB</div>
-        <div class="login-stripe"></div>
-        <div class="login-sub">Plataforma digital interna<br>Club Esportiu Europa</div>
+        <div class="login-sub">Plataforma digital interna · CE Europa</div>
       </div>
-    </div>
-    <div class="login-right">
-      <div class="login-form-box">
+      <div class="login-glass-card">
         <div class="login-form-title">Accés</div>
         <div class="login-form-sub">Introdueix les teves credencials</div>
         <form class="login-form" id="login-form">
@@ -480,21 +512,9 @@ function renderLogin() {
             <label class="form-label">Contrasenya</label>
             <input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
           </div>
-          <div id="login-error" style="color:var(--brand);font-size:.78rem;display:none">Usuari o contrasenya incorrectes</div>
+          <div id="login-error">Usuari o contrasenya incorrectes</div>
           <button type="submit" class="login-btn">Entrar →</button>
         </form>
-        <div class="login-users-hint">
-          <strong>🔑 Usuaris de prova</strong>
-          <ul>
-            <li>admin / admin123 — Administrador</li>
-            <li>director / director123 — Director Esportiu</li>
-            <li>coach / coach123 — Entrenador</li>
-            <li>player / player123 — Jugador</li>
-            <li>comm / comm123 — Comunicació</li>
-            <li>office / office123 — Oficina</li>
-            <li>member / member123 — Soci</li>
-          </ul>
-        </div>
       </div>
     </div>
   </div>
@@ -516,39 +536,42 @@ function bindLogin() {
     btn.textContent = 'Carregant…';
     btn.disabled = true;
     await initTeam();
-    navigate('home');
+    navigate('desktop');
   });
 }
 
-// ── SIDEBAR ────────────────────────────────────────────────
+// ── TASKBAR ────────────────────────────────────────────────
 
-function renderSidebar() {
-  const navItems = buildNavItems();
+function renderTaskbar() {
+  const navItems = buildNavItems().filter(i => !i.section);
   const u = currentUser;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
   return `
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-mark"><img src="assets/escut.svg" alt="CE Europa"></div>
-      <div class="logo-text">
-        <span class="logo-name">Europa Hub</span>
-        <span class="logo-sub">CE Europa · Intern</span>
-      </div>
+  <div class="taskbar">
+    <div class="taskbar-logo">
+      <img src="assets/escut.svg" alt="CE Europa">
+      <span class="taskbar-logo-text">Europa Hub</span>
     </div>
-    <nav class="sidebar-nav">
-      ${navItems.map(item => item.section
-        ? `<div class="nav-section-label">${item.section}</div>`
-        : `<div class="nav-item ${currentPage===item.page?'active':''}" data-page="${item.page}">${item.icon} ${item.label}</div>`
-      ).join('')}
-    </nav>
-    <div class="sidebar-user">
-      <div class="avatar">${u.avatar}</div>
-      <div class="user-info">
-        <div class="name">${u.name.split(' ')[0]}</div>
-        <div class="role">${DEFAULT_ROLES[u.role]?.label || u.role}</div>
-      </div>
-      <button class="btn-logout-sidebar" onclick="logout()">${ico('logout')} Sortir</button>
+    <div class="taskbar-sep"></div>
+    <div class="taskbar-dock">
+      ${navItems.map(item => `
+        <div class="dock-item ${currentPage===item.page?'active':''}" data-page="${item.page}">
+          ${item.icon}
+          <div class="dock-tooltip">${item.label}</div>
+        </div>
+      `).join('')}
     </div>
-  </aside>
+    <div class="taskbar-sep"></div>
+    <div class="taskbar-right">
+      <div class="taskbar-user">
+        <div class="avatar">${u.avatar}</div>
+        <span class="taskbar-user-name">${u.name.split(' ')[0]}</span>
+      </div>
+      <span class="taskbar-time" id="taskbar-clock">${timeStr}</span>
+      <button class="taskbar-logout" onclick="logout()" title="Tancar sessió">${ico('logout')}</button>
+    </div>
+  </div>
   `;
 }
 
@@ -580,10 +603,6 @@ function buildNavItems() {
     items.push({ section:'Partits' });
     items.push({ page:'player_selection', label:'Convocatòria', icon:ico('selection') });
   }
-  if (can('teams')) {
-    items.push({ section:'Gestió' });
-    items.push({ page:'teams', label:'Equips', icon:ico('users') });
-  }
   if (can('admin')) {
     items.push({ section:'Administració' });
     items.push({ page:'admin_users', label:'Usuaris',  icon:ico('users') });
@@ -593,7 +612,7 @@ function buildNavItems() {
   return items;
 }
 
-function renderTopHeader() {
+function renderWindowBar() {
   const titles = {
     home:'Inici', squad:'Plantilla', tactical:'Pissarra Tàctica', training:'Entrenaments',
     veo:'Anàlisi VEO', tasks:'Tasques Staff', wellness:'Wellness', selection:'Convocatòria',
@@ -603,23 +622,29 @@ function renderTopHeader() {
     admin_users:'Usuaris', admin_roles:'Rols', admin_perms:'Permisos',
   };
   const sections = {
-    squad:'Àrea Esp. 1', tactical:'Àrea Esp. 1', training:'Àrea Esp. 1',
-    veo:'Àrea Esp. 1', tasks:'Àrea Esp. 1', wellness:'Àrea Esp. 1', selection:'Àrea Esp. 1',
-    player_training:'Àrea Esp. 2', player_veo:'Àrea Esp. 2', player_selection:'Àrea Esp. 2', player_wellness:'Àrea Esp. 2',
+    squad:'Àrea Esportiva', tactical:'Àrea Esportiva', training:'Àrea Esportiva',
+    veo:'Àrea Esportiva', tasks:'Àrea Esportiva', wellness:'Àrea Esportiva', selection:'Àrea Esportiva',
+    player_training:'Àrea Esportiva', player_veo:'Àrea Esportiva', player_selection:'Àrea Esportiva', player_wellness:'Àrea Esportiva',
     admin_users:'Administració', admin_roles:'Administració', admin_perms:'Administració',
+    teams:'Gestió', scouting:'Scouting', communication:'Comunicació', office:'Oficina', members:'Socis',
   };
-  const title   = titles[currentPage]   || currentPage;
-  const section = sections[currentPage] || null;
+  const title   = titles[currentPage]  || currentPage;
+  const section = sections[currentPage] || 'Europa Hub';
   return `
-  <header class="top-header">
-    <div class="breadcrumb">
-      ${section ? `<span>${section}</span><span class="breadcrumb-sep">/</span>` : ''}
-      <span class="current">${title}</span>
+  <div class="window-bar">
+    <button class="window-close-btn" onclick="closeWindow()" title="Tancar">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="window-bar-breadcrumb">
+      <span>${section}</span>
+      <span class="window-bar-sep">›</span>
+      <span class="wbb-current">${title}</span>
     </div>
-    <div class="header-actions">
-      <span style="font-size:.72rem;color:var(--text3)">${new Date().toLocaleDateString('ca-ES',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</span>
+    <div class="window-bar-title">Europa Hub · CE Europa</div>
+    <div class="window-bar-right">
+      <span>${new Date().toLocaleDateString('ca-ES',{day:'numeric',month:'short',year:'numeric'})}</span>
     </div>
-  </header>
+  </div>
   `;
 }
 
@@ -650,7 +675,7 @@ function renderPage() {
 }
 
 function bindNav() {
-  document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+  document.querySelectorAll('.dock-item[data-page]').forEach(el => {
     el.addEventListener('click', () => navigate(el.dataset.page));
   });
 }

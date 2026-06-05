@@ -33,12 +33,16 @@ function renderHome() {
 
 // ── SQUAD ──────────────────────────────────────────────────
 
+let _squadTab = 'players';
+
 function renderSquad() {
   const allPeople = DB.players();
   const players   = allPeople.filter(p => p.person_type !== 'staff');
   const staffList = allPeople.filter(p => p.person_type === 'staff');
   const readOnly  = currentUser.role === 'sporting_director';
   const canEdit   = !readOnly;
+  const showTeams = can('teams');
+  const tab       = _squadTab;
 
   return `
   <div class="page-header">
@@ -47,10 +51,22 @@ function renderSquad() {
       <div class="page-subtitle">${players.length} jugador${players.length!==1?'s':''} · ${staffList.length} staff</div>
     </div>
     <div class="page-actions">
-      <input class="form-input" type="search" id="squad-search" placeholder="Cercar..." style="width:180px">
-      ${canEdit ? `<button class="btn btn-primary" onclick="openPlayerModal()">${ico('plus')} Nou</button>` : ''}
+      ${tab === 'players' ? `
+        <input class="form-input" type="search" id="squad-search" placeholder="Cercar..." style="width:180px">
+        ${canEdit ? `<button class="btn btn-primary" onclick="openPlayerModal()">${ico('plus')} Nou</button>` : ''}
+      ` : `
+        ${showTeams ? `<button class="btn btn-primary" onclick="openCreateTeamModal()">${ico('plus')} Nou Equip</button>` : ''}
+      `}
     </div>
   </div>
+
+  ${showTeams ? `
+  <div class="tabs" style="margin-bottom:20px">
+    <button class="tab-btn ${tab==='players'?'active':''}" onclick="_squadTab='players';navigate('squad')">Jugadors i Staff</button>
+    <button class="tab-btn ${tab==='teams'?'active':''}" onclick="_squadTab='teams';navigate('squad')">Equips</button>
+  </div>` : ''}
+
+  ${tab === 'players' ? `
   <div class="chips" id="pos-filter" style="margin-bottom:16px">
     <div class="chip active" data-pos="">Tots</div>
     <div class="chip" data-pos="Porter">Porters</div>
@@ -63,7 +79,6 @@ function renderSquad() {
   <div id="squad-grid" class="grid grid-3" style="gap:10px">
     ${players.map(p => renderPlayerCard(p, !canEdit)).join('')}
   </div>
-
   ${staffList.length > 0 ? `
   <div style="margin-top:28px">
     <div style="font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:8px">
@@ -73,8 +88,56 @@ function renderSquad() {
       ${staffList.map(p => renderStaffCard(p, !canEdit)).join('')}
     </div>
   </div>` : ''}
+  ` : `
+  ${renderTeamsInline()}
+  `}
 
-  <div id="player-modal-container"></div>`;
+  <div id="player-modal-container"></div>
+  <div id="team-modal-container"></div>`;
+}
+
+function renderTeamsInline() {
+  const teams   = DB.myTeams();
+  const members = DB.teamMembers();
+  const users   = DB.users();
+  const isAdmin = currentUser.role === 'administrator';
+  return `
+  <div style="display:flex;flex-direction:column;gap:14px">
+    ${teams.map(t => {
+      const teamUsers = members.filter(m => m.team_id === t.id)
+        .map(m => users.find(u => u.id === m.user_id)).filter(Boolean);
+      const isActive = t.id === currentTeamId;
+      return `
+      <div class="card" style="border-color:${isActive ? 'var(--brand)' : 'var(--border)'}">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="width:48px;height:48px;border-radius:10px;background:${t.color||'#022E91'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <img src="assets/escut.svg" style="width:32px" alt="">
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <span style="font-weight:600;font-size:.9375rem">${t.name}</span>
+              ${isActive ? `<span class="badge badge-blue">Actiu</span>` : ''}
+            </div>
+            ${t.season ? `<div style="font-size:.75rem;color:var(--text3)">Temporada ${t.season}</div>` : ''}
+            <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px">
+              ${teamUsers.slice(0,8).map(u => `
+                <div style="display:flex;align-items:center;gap:5px;padding:3px 8px;background:var(--bg3);border-radius:20px;font-size:.72rem">
+                  <div class="avatar sm">${u.avatar}</div> ${u.name.split(' ')[0]}
+                </div>`).join('')}
+              ${teamUsers.length > 8 ? `<span style="font-size:.72rem;color:var(--text3);padding:3px 8px">+${teamUsers.length-8} més</span>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+            ${!isActive ? `<button class="btn btn-ghost btn-sm" onclick="handleSwitchTeam('${t.id}')">Accedir →</button>` : ''}
+            ${isAdmin ? `<button class="btn-icon" title="Membres" onclick="openTeamMembersModal('${t.id}')">${ico('users')}</button>` : ''}
+            <button class="btn-icon" title="Editar" onclick="openEditTeamModal('${t.id}')">${ico('edit')}</button>
+            ${!isActive ? `<button class="btn-icon" title="Suprimir" onclick="deleteTeam('${t.id}')" style="color:var(--red)">${ico('trash')}</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    ${teams.length === 0 ? `<div class="empty-state">${ico('users')}<h3>Cap equip creat</h3><p>Crea el primer equip per començar</p></div>` : ''}
+  </div>`;
 }
 
 function _photoEl(p, size=44) {
