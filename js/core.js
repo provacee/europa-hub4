@@ -30,7 +30,7 @@ const DEFAULT_ROLES = {
 const DEFAULT_PERMISSIONS = {
   administrator:     { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:true,  office:true,  members:true,  admin:true,  teams:true,  staff_view:false },
   sporting_director: { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:false, office:false, members:false, admin:false, teams:true,  staff_view:false },
-  coach:             { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:true,  staff_view:false },
+  coach:             { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:false },
   staff:             { home:true,  squad:false, tactical:true,  training:true,  veo:true,  tasks:true,  wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:true  },
   player:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:true,  scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:false },
   communication:     { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:true,  office:false, members:false, admin:false, teams:false, staff_view:false },
@@ -302,12 +302,12 @@ const ICONS = {
   users:`<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>`,
   shield:`<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
   tactical:`<rect x="2" y="3" width="20" height="18" rx="2"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><path d="M8 8l4 6M16 8l-4 6"/>`,
-  training:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+  training:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`, /* pols activitat */
   video:`<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>`,
   tasks:`<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
   wellness:`<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>`,
-  selection:`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>`,
-  scouting:`<circle cx="5" cy="14" r="4"/><circle cx="19" cy="14" r="4"/><line x1="9" y1="14" x2="15" y2="14"/><path d="M9 14V9a3 3 0 016 0v5"/>`,
+  selection:`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>`, /* calendari + check */
+  scouting:`<circle cx="6" cy="14" r="4"/><circle cx="18" cy="14" r="4"/><line x1="10" y1="14" x2="14" y2="14"/><path d="M10 14v-4a2 2 0 014 0v4"/>`, /* prismàtics */
   comm:`<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>`,
   office:`<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>`,
   member:`<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
@@ -317,6 +317,7 @@ const ICONS = {
   trash:`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>`,
   logout:`<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`,
   email:`<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>`,
+  badge:`<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-4 0v2M8 7V5a2 2 0 014 0v2M12 12v3M10 14h4"/>`,
   msg:`<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/>`,
   check:`<polyline points="20 6 9 17 4 12"/>`,
   close:`<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
@@ -871,7 +872,11 @@ function buildNavItems() {
     items.push({ page:'player_wellness',  label:'Wellness',     icon:ico('wellness') });
   }
   if (can('scouting'))       { items.push({ section:'Scouting' }); items.push({ page:'scouting', label:'Scouting', icon:ico('scouting') }); }
-  if (can('communication'))  { items.push({ section:'Comunicació' }); items.push({ page:'communication', label:'Comunicació', icon:ico('comm') }); }
+  if (can('communication'))  {
+    items.push({ section:'Comunicació' });
+    items.push({ page:'communication',   label:'Comunicació',  icon:ico('comm') });
+    items.push({ page:'accreditations',  label:'Acreditacions', icon:ico('badge') });
+  }
   items.push({ page:'messaging', label:'Missatgeria', icon:ico('msg') });
   items.push({ page:'email',     label:'Correu',      icon:ico('email') });
   if (can('office'))         { items.push({ section:'Oficina' }); items.push({ page:'office', label:'Oficina', icon:ico('office') }); }
@@ -951,6 +956,7 @@ function renderPage() {
     case 'messaging':         return renderMessaging();
     case 'email':             return renderEmail();
     case 'admin_dashboard':   return renderAdminDashboard();
+    case 'accreditations':    return renderAccreditations();
     default: return `<div class="empty-state"><h3>Pàgina no trobada</h3></div>`;
   }
 }

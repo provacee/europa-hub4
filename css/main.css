@@ -13,6 +13,16 @@
   src: url('../fonts/GeneralSans-Regular.ttf') format('truetype');
   font-weight: 400; font-style: normal; font-display: swap;
 }
+@font-face {
+  font-family: 'LaRoja';
+  src: url('../fonts/La_Roja-EstrechaBold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'LaRojita';
+  src: url('../fonts/LaRojita-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
 
 :root {
   --brand:        #2563eb;
@@ -1629,6 +1639,68 @@ html[data-theme="light"] .msg-theirs .msg-text { background: #fff; border-color:
 .msg-delete-btn svg { width: 11px; height: 11px; }
 .msg-delete-btn:hover { background: var(--red); color: #fff; opacity: 1 !important; }
 .msg-bubble-wrap:hover .msg-delete-btn { opacity: .6; }
+
+/* ══ COMUNICACIÓ ════════════════════════════════════════════ */
+
+.comm-post-card { transition: all .2s ease; }
+.comm-platform-badge {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: .85rem; color: #fff; text-transform: uppercase;
+}
+.comm-plat-instagram  { background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); }
+.comm-plat-twitterx   { background: #000; }
+.comm-plat-facebook   { background: #1877f2; }
+.comm-plat-youtube    { background: #ff0000; }
+.comm-plat-tiktok     { background: #010101; }
+.comm-plat-web        { background: var(--brand); }
+
+/* ══ ACREDITACIÓ PDF STYLES ═════════════════════════════════ */
+
+.ac-page {
+  position: relative; width: 794px; height: 1123px;
+  background: #16053d; overflow: hidden;
+}
+.ac-bg-half { position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden; }
+.ac-bg-top  { top: 0; }
+.ac-bg-bottom { bottom: 0; }
+.ac-pdf-bg  { position: absolute; left: 0; width: 100%; height: 1123px; object-fit: fill; }
+.ac-bg-top .ac-pdf-bg  { top: 0; }
+.ac-bg-bottom .ac-pdf-bg { bottom: 0; }
+
+.ac-ticket { position: absolute; left: 11px; width: 276px; height: 365px; }
+.ac-ticket-top    { top: 128px; }
+.ac-ticket-bottom { top: 692px; }
+
+.ac-match {
+  position: absolute; left: 0; top: 0; width: 276px; height: 116px;
+  padding: 14px 10px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.ac-team { font-family: 'LaRoja', sans-serif; font-size: 42px; line-height: .9; color: #180746; }
+.ac-vs-gap { height: 23px; margin: 7px 0; }
+
+.ac-info {
+  position: absolute; left: 16px; right: 21px; top: 139px;
+  color: white; font-family: 'LaRojita', sans-serif; font-size: 13px; line-height: 1; font-weight: bold;
+}
+.ac-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; white-space: nowrap; width: 100%; }
+.ac-season  { color: #ff7a00; width: 122px; flex: 0 0 122px; }
+.ac-matchday { width: 44px; flex: 0 0 44px; text-align: center; overflow: hidden; }
+.ac-gate    { width: 36px; flex: 0 0 36px; text-align: right; }
+.ac-stadium { margin-top: 9px; }
+.ac-date-row { margin-top: 7px; }
+.ac-date    { width: 122px; flex: 0 0 122px; }
+.ac-time    { width: 45px; flex: 0 0 45px; text-align: right; }
+
+.ac-namebox, .ac-mediabox {
+  position: absolute; left: 16px; right: 10px; height: 43px;
+  display: flex; align-items: center; overflow: hidden;
+}
+.ac-namebox  { top: 212px; }
+.ac-mediabox { top: 264px; }
+.ac-name { font-family: 'LaRojita', sans-serif; font-size: 16px; line-height: 1; font-weight: bold; color: #180746; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ac-media { font-family: 'LaRojita', sans-serif; font-size: 15px; line-height: 1.05; font-weight: bold; color: #180746; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ── Settings upload button ── */
 .settings-wall-upload {

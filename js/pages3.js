@@ -417,29 +417,479 @@ function deleteScouting(id) {
 
 // ── COMMUNICATION ──────────────────────────────────────────
 
+let _commTab = 'posts';
+
 function renderComm() {
-  const modules = [
-    { icon:'shield', label:'Acreditació',     desc:"Sistema d'acreditació de premsa" },
-    { icon:'comm',   label:'Notes de Premsa', desc:'Redacció i distribució de comunicats' },
-    { icon:'video',  label:'Fotografia',      desc:'Arxiu fotogràfic del club' },
-    { icon:'play',   label:'Vídeo',           desc:'Producció audiovisual' },
-    { icon:'publish',label:'Xarxes Socials',  desc:'Gestió de canals socials' },
-    { icon:'tasks',  label:'Arxiu Multimèdia',desc:'Biblioteca de recursos' },
-  ];
+  const posts    = lsGet('eh_comm_posts')    || [];
+  const notes    = lsGet('eh_comm_notes')    || [];
+  const contacts = lsGet('eh_comm_contacts') || [];
+  const tab = _commTab;
+
+  const PLATFORMS = ['Instagram','Twitter/X','Facebook','YouTube','TikTok','Web'];
+  const STATUS_COLORS = { planificat:'badge-blue', publicat:'badge-green', borrador:'badge-gray', cancel·lat:'badge-red' };
+
   return `
-  <div class="page-header"><div class="page-header-left"><div class="page-title">Comunicació</div><div class="page-subtitle">Mòduls de comunicació</div></div></div>
-  <div style="padding:10px 12px;background:var(--yellow-dim);border:1px solid rgba(245,158,11,.3);border-radius:6px;margin-bottom:18px;font-size:.78rem;color:var(--yellow)">⚡ Versió 1 — Funcionalitat disponible pròximament.</div>
-  <div class="grid grid-3">
-    ${modules.map(m=>`
-    <div class="card" style="opacity:.65;cursor:not-allowed">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <div style="width:30px;height:30px;background:var(--bg3);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text2)">${ico(m.icon)}</div>
-        <div style="font-weight:600;font-size:.8125rem">${m.label}</div>
-        <span class="badge badge-gray" style="margin-left:auto">Aviat</span>
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">Comunicació</div>
+      <div class="page-subtitle">Gestió de continguts, premsa i xarxes socials</div>
+    </div>
+    <div class="page-actions">
+      ${tab==='posts'    ? `<button class="btn btn-primary" onclick="openCommPostModal()">${ico('plus')} Nova Publicació</button>` : ''}
+      ${tab==='notes'    ? `<button class="btn btn-primary" onclick="openCommNoteModal()">${ico('plus')} Nou Comunicat</button>` : ''}
+      ${tab==='contacts' ? `<button class="btn btn-primary" onclick="openCommContactModal()">${ico('plus')} Nou Contacte</button>` : ''}
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn ${tab==='posts'?'active':''}" onclick="_commTab='posts';navigate('communication')">${ico('publish')} Publicacions</button>
+    <button class="tab-btn ${tab==='notes'?'active':''}" onclick="_commTab='notes';navigate('communication')">${ico('edit')} Comunicats</button>
+    <button class="tab-btn ${tab==='contacts'?'active':''}" onclick="_commTab='contacts';navigate('communication')">${ico('users')} Contactes Premsa</button>
+  </div>
+
+  ${tab === 'posts' ? `
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${posts.length === 0 ? `<div class="empty-state">${ico('publish')}<h3>Cap publicació planificada</h3><p>Crea la primera publicació per al calendari de continguts</p></div>` : ''}
+    ${posts.map((p,i) => `
+    <div class="card comm-post-card">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div class="comm-platform-badge comm-plat-${(p.platform||'').toLowerCase().replace('/','').replace(' ','')}">
+          ${(p.platform||'')[0]||'?'}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-weight:700;font-size:.875rem">${p.platform}</span>
+            <span class="badge ${STATUS_COLORS[p.status]||'badge-gray'}">${p.status}</span>
+            ${p.date ? `<span style="font-size:.7rem;color:var(--text3)">${formatDate(p.date)}</span>` : ''}
+          </div>
+          <div style="font-size:.8125rem;color:var(--text2);white-space:pre-wrap;line-height:1.5">${p.text}</div>
+          ${p.hashtags ? `<div style="margin-top:6px;font-size:.72rem;color:var(--brand)">${p.hashtags}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-icon btn-sm" onclick="openCommPostModal(${i})">${ico('edit')}</button>
+          <button class="btn-icon btn-sm" onclick="deleteCommPost(${i})" style="color:var(--red)">${ico('trash')}</button>
+        </div>
       </div>
-      <div style="font-size:.72rem;color:var(--text3)">${m.desc}</div>
     </div>`).join('')}
+  </div>` : ''}
+
+  ${tab === 'notes' ? `
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${notes.length === 0 ? `<div class="empty-state">${ico('edit')}<h3>Cap comunicat creat</h3><p>Redacta el primer comunicat de premsa</p></div>` : ''}
+    ${notes.map((n,i) => `
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-weight:700;font-size:.9rem">${n.title}</span>
+            ${n.date ? `<span style="font-size:.7rem;color:var(--text3)">${formatDate(n.date)}</span>` : ''}
+          </div>
+          <div style="font-size:.8rem;color:var(--text2);line-height:1.6;max-height:80px;overflow:hidden">${n.body}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-icon btn-sm" onclick="openCommNoteModal(${i})">${ico('edit')}</button>
+          <button class="btn-icon btn-sm" onclick="deleteCommNote(${i})" style="color:var(--red)">${ico('trash')}</button>
+        </div>
+      </div>
+    </div>`).join('')}
+  </div>` : ''}
+
+  ${tab === 'contacts' ? `
+  <div class="card" style="padding:0;overflow:hidden">
+    ${contacts.length === 0 ? `<div style="padding:40px;text-align:center;color:var(--text3)">${ico('users')}<div style="margin-top:12px">Cap contacte de premsa</div></div>` : ''}
+    ${contacts.map((c,i) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border)">
+      <div class="avatar">${(c.name||'?')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.8125rem">${c.name}</div>
+        <div style="font-size:.71rem;color:var(--text3)">${c.media}${c.role?' · '+c.role:''}</div>
+      </div>
+      ${c.email ? `<a href="mailto:${c.email}" class="btn btn-ghost btn-sm">${ico('email')}</a>` : ''}
+      ${c.phone ? `<a href="tel:${c.phone}" class="btn btn-ghost btn-sm">${ico('comm')}</a>` : ''}
+      <div style="display:flex;gap:4px">
+        <button class="btn-icon btn-sm" onclick="openCommContactModal(${i})">${ico('edit')}</button>
+        <button class="btn-icon btn-sm" onclick="deleteCommContact(${i})" style="color:var(--red)">${ico('trash')}</button>
+      </div>
+    </div>`).join('')}
+  </div>` : ''}
+
+  <div id="comm-modal-container"></div>`;
+}
+
+/* ── Comm: Post modal ── */
+function openCommPostModal(idx=null) {
+  const posts = lsGet('eh_comm_posts') || [];
+  const p = idx !== null ? posts[idx] : null;
+  const PLATFORMS = ['Instagram','Twitter/X','Facebook','YouTube','TikTok','Web'];
+  const STATUSES  = ['planificat','borrador','publicat','cancel·lat'];
+  document.getElementById('comm-modal-container').innerHTML = `
+  <div class="modal-overlay" id="comm-post-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">${p?'Editar':'Nova'} Publicació</div>
+        <button class="btn-icon" onclick="closeModal('comm-post-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Plataforma</label>
+            <select class="form-select" id="cp-platform">
+              ${PLATFORMS.map(pl=>`<option ${p?.platform===pl?'selected':''}>${pl}</option>`).join('')}
+            </select></div>
+          <div class="form-group"><label class="form-label">Estat</label>
+            <select class="form-select" id="cp-status">
+              ${STATUSES.map(s=>`<option ${p?.status===s?'selected':''}>${s}</option>`).join('')}
+            </select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Data de publicació</label>
+          <input class="form-input" type="date" id="cp-date" value="${p?.date||''}"></div>
+        <div class="form-group"><label class="form-label">Contingut</label>
+          <textarea class="form-textarea" id="cp-text" style="min-height:120px" placeholder="Text de la publicació…">${p?.text||''}</textarea></div>
+        <div class="form-group"><label class="form-label">Hashtags / Mencions</label>
+          <input class="form-input" id="cp-hashtags" placeholder="#ceeuropa #futbol" value="${p?.hashtags||''}"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('comm-post-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="saveCommPost(${idx??'null'})">${ico('check')} Guardar</button>
+      </div>
+    </div>
   </div>`;
+}
+
+function saveCommPost(idx) {
+  const posts = lsGet('eh_comm_posts') || [];
+  const post = {
+    platform: document.getElementById('cp-platform').value,
+    status:   document.getElementById('cp-status').value,
+    date:     document.getElementById('cp-date').value,
+    text:     document.getElementById('cp-text').value.trim(),
+    hashtags: document.getElementById('cp-hashtags').value.trim(),
+  };
+  if (!post.text) return toast('El contingut és obligatori', 'error');
+  if (idx !== null && idx !== 'null') posts[idx] = post; else posts.push(post);
+  lsSet('eh_comm_posts', posts);
+  closeModal('comm-post-modal');
+  toast('Publicació guardada', 'success');
+  navigate('communication');
+}
+function deleteCommPost(i) { const p=lsGet('eh_comm_posts')||[]; p.splice(i,1); lsSet('eh_comm_posts',p); navigate('communication'); }
+
+/* ── Comm: Note modal ── */
+function openCommNoteModal(idx=null) {
+  const notes = lsGet('eh_comm_notes') || [];
+  const n = idx !== null ? notes[idx] : null;
+  document.getElementById('comm-modal-container').innerHTML = `
+  <div class="modal-overlay" id="comm-note-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">${n?'Editar':'Nou'} Comunicat</div>
+        <button class="btn-icon" onclick="closeModal('comm-note-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Títol</label>
+          <input class="form-input" id="cn-title" placeholder="Títol del comunicat" value="${n?.title||''}"></div>
+        <div class="form-group"><label class="form-label">Data</label>
+          <input class="form-input" type="date" id="cn-date" value="${n?.date||''}"></div>
+        <div class="form-group"><label class="form-label">Contingut</label>
+          <textarea class="form-textarea" id="cn-body" style="min-height:200px" placeholder="Cos del comunicat…">${n?.body||''}</textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('comm-note-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="saveCommNote(${idx??'null'})">${ico('check')} Guardar</button>
+      </div>
+    </div>
+  </div>`;
+}
+function saveCommNote(idx) {
+  const notes = lsGet('eh_comm_notes') || [];
+  const note = { title: document.getElementById('cn-title').value.trim(), date: document.getElementById('cn-date').value, body: document.getElementById('cn-body').value.trim() };
+  if (!note.title || !note.body) return toast('Títol i contingut obligatoris', 'error');
+  if (idx !== null && idx !== 'null') notes[idx] = note; else notes.push(note);
+  lsSet('eh_comm_notes', notes); closeModal('comm-note-modal'); toast('Comunicat guardat', 'success'); navigate('communication');
+}
+function deleteCommNote(i) { const n=lsGet('eh_comm_notes')||[]; n.splice(i,1); lsSet('eh_comm_notes',n); navigate('communication'); }
+
+/* ── Comm: Contact modal ── */
+function openCommContactModal(idx=null) {
+  const contacts = lsGet('eh_comm_contacts') || [];
+  const c = idx !== null ? contacts[idx] : null;
+  const ROLES = ['Periodista','Fotògraf','Càmera','Redactor/a','Cap de redacció','Director/a','Freelance'];
+  document.getElementById('comm-modal-container').innerHTML = `
+  <div class="modal-overlay" id="comm-contact-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${c?'Editar':'Nou'} Contacte</div>
+        <button class="btn-icon" onclick="closeModal('comm-contact-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nom *</label><input class="form-input" id="cc-name" value="${c?.name||''}"></div>
+          <div class="form-group"><label class="form-label">Mitjà *</label><input class="form-input" id="cc-media" value="${c?.media||''}"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Funció</label>
+            <select class="form-select" id="cc-role">
+              <option value="">Sense especificar</option>
+              ${ROLES.map(r=>`<option ${c?.role===r?'selected':''}>${r}</option>`).join('')}
+            </select></div>
+          <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="cc-email" value="${c?.email||''}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Telèfon</label><input class="form-input" id="cc-phone" value="${c?.phone||''}"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('comm-contact-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="saveCommContact(${idx??'null'})">${ico('check')} Guardar</button>
+      </div>
+    </div>
+  </div>`;
+}
+function saveCommContact(idx) {
+  const contacts = lsGet('eh_comm_contacts') || [];
+  const c = { name: document.getElementById('cc-name').value.trim(), media: document.getElementById('cc-media').value.trim(), role: document.getElementById('cc-role').value, email: document.getElementById('cc-email').value.trim(), phone: document.getElementById('cc-phone').value.trim() };
+  if (!c.name || !c.media) return toast('Nom i mitjà obligatoris', 'error');
+  if (idx !== null && idx !== 'null') contacts[idx] = c; else contacts.push(c);
+  lsSet('eh_comm_contacts', contacts); closeModal('comm-contact-modal'); toast('Contacte guardat', 'success'); navigate('communication');
+}
+function deleteCommContact(i) { const c=lsGet('eh_comm_contacts')||[]; c.splice(i,1); lsSet('eh_comm_contacts',c); navigate('communication'); }
+
+// ── ACCREDITATIONS ─────────────────────────────────────────
+
+function renderAccreditations() {
+  const saved = lsGet('eh_acreditats') || { local:'EUROPA', visitant:'RIVAL', jornada:'J1', data:'', hora:'', list:[] };
+  const list = saved.list || [];
+
+  const TIPUS = {
+    organitzacio: { label:'ORGANITZACIÓ', color:'#f59e0b' },
+    premsa:       { label:'PREMSA',       color:'#3b82f6' },
+    fotograf:     { label:'FOTÒGRAF',     color:'#10b981' },
+  };
+
+  return `
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">Acreditacions</div>
+      <div class="page-subtitle">Sistema d'acreditació de premsa — CE Europa</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="openAcreditacioModal()">${ico('plus')} Afegir acreditat</button>
+      <button class="btn btn-secondary" onclick="generarPDFAcreditacions()">${ico('publish')} Generar PDF</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:14px">Dades del Partit</div>
+    <div class="form-row-3" style="grid-template-columns:repeat(5,1fr)">
+      <div class="form-group"><label class="form-label">Local</label>
+        <input class="form-input" id="ac-local" value="${saved.local}" oninput="saveAcredDades()"></div>
+      <div class="form-group"><label class="form-label">Visitant</label>
+        <input class="form-input" id="ac-visitant" value="${saved.visitant}" oninput="saveAcredDades()"></div>
+      <div class="form-group"><label class="form-label">Jornada</label>
+        <input class="form-input" id="ac-jornada" value="${saved.jornada}" oninput="saveAcredDades()"></div>
+      <div class="form-group"><label class="form-label">Data</label>
+        <input class="form-input" type="date" id="ac-data" value="${saved.data}" oninput="saveAcredDades()"></div>
+      <div class="form-group"><label class="form-label">Hora</label>
+        <input class="form-input" type="time" id="ac-hora" value="${saved.hora}" oninput="saveAcredDades()"></div>
+    </div>
+    <div style="margin-top:14px">
+      <label class="form-label" style="margin-bottom:6px;display:block">Importar des d'Excel/CSV</label>
+      <input type="file" id="ac-file-input" accept=".xlsx,.xls,.csv,.txt" style="font-size:.78rem;color:var(--text2)" onchange="importarAcreditats(this.files[0])">
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-weight:700">Acreditats <span class="badge badge-blue" style="margin-left:6px">${list.length}</span></div>
+      <div style="display:flex;gap:8px">
+        ${Object.entries(TIPUS).map(([k,v]) => `<span style="font-size:.68rem;font-weight:700;color:${v.color}">● ${v.label}: ${list.filter(a=>a.tipus===k).length}</span>`).join('<span style="color:var(--border2)">|</span>')}
+      </div>
+    </div>
+    ${list.length === 0
+      ? `<div style="padding:40px;text-align:center;color:var(--text3);font-size:.8rem">Cap acreditat. Afegeix-ne o importa'n des d'Excel.</div>`
+      : `<div style="max-height:400px;overflow-y:auto">
+        <table>
+          <thead><tr><th>#</th><th>Nom</th><th>Mitjà</th><th>Tipus</th><th></th></tr></thead>
+          <tbody>
+            ${list.map((a,i)=>`
+            <tr>
+              <td style="color:var(--text3);font-size:.72rem">${i+1}</td>
+              <td><input class="form-input" style="padding:5px 8px;font-size:.8rem" value="${a.nom}" oninput="updateAcreditat(${i},'nom',this.value)"></td>
+              <td><input class="form-input" style="padding:5px 8px;font-size:.8rem" value="${a.mitja}" oninput="updateAcreditat(${i},'mitja',this.value)"></td>
+              <td>
+                <select class="form-select" style="padding:5px 8px;font-size:.75rem" onchange="updateAcreditat(${i},'tipus',this.value)">
+                  ${Object.entries(TIPUS).map(([k,v])=>`<option value="${k}" ${a.tipus===k?'selected':''}>${v.label}</option>`).join('')}
+                </select>
+              </td>
+              <td><button class="btn-icon btn-sm" onclick="eliminarAcreditat(${i})" style="color:var(--red)">${ico('trash')}</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+  </div>
+
+  <div id="ac-modal-container"></div>
+  <div id="pdf-root" style="position:fixed;left:-99999px;top:0;pointer-events:none"></div>`;
+}
+
+function saveAcredDades() {
+  const saved = lsGet('eh_acreditats') || { list:[] };
+  saved.local    = document.getElementById('ac-local')?.value || saved.local;
+  saved.visitant = document.getElementById('ac-visitant')?.value || saved.visitant;
+  saved.jornada  = document.getElementById('ac-jornada')?.value || saved.jornada;
+  saved.data     = document.getElementById('ac-data')?.value || saved.data;
+  saved.hora     = document.getElementById('ac-hora')?.value || saved.hora;
+  lsSet('eh_acreditats', saved);
+}
+
+function updateAcreditat(i, camp, valor) {
+  const saved = lsGet('eh_acreditats') || { list:[] };
+  if (saved.list[i]) { saved.list[i][camp] = valor; lsSet('eh_acreditats', saved); }
+}
+
+function eliminarAcreditat(i) {
+  const saved = lsGet('eh_acreditats') || { list:[] };
+  saved.list.splice(i, 1);
+  lsSet('eh_acreditats', saved);
+  navigate('accreditations');
+}
+
+function openAcreditacioModal() {
+  const TIPUS = { organitzacio:'ORGANITZACIÓ', premsa:'PREMSA', fotograf:'FOTÒGRAF' };
+  document.getElementById('ac-modal-container').innerHTML = `
+  <div class="modal-overlay" id="ac-add-modal">
+    <div class="modal">
+      <div class="modal-header"><div class="modal-title">Nou Acreditat</div>
+        <button class="btn-icon" onclick="closeModal('ac-add-modal')">${ico('close')}</button></div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nom *</label><input class="form-input" id="na-nom" placeholder="Nom Cognoms"></div>
+          <div class="form-group"><label class="form-label">Mitjà *</label><input class="form-input" id="na-mitja" placeholder="CE Europa, La Vanguardia…"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Tipus</label>
+          <select class="form-select" id="na-tipus">
+            ${Object.entries(TIPUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('ac-add-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="afegirAcreditat()">${ico('check')} Afegir</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function afegirAcreditat() {
+  const nom   = document.getElementById('na-nom').value.trim();
+  const mitja = document.getElementById('na-mitja').value.trim();
+  const tipus = document.getElementById('na-tipus').value;
+  if (!nom || !mitja) return toast('Nom i mitjà obligatoris', 'error');
+  const saved = lsGet('eh_acreditats') || { local:'EUROPA', visitant:'RIVAL', jornada:'J1', data:'', hora:'', list:[] };
+  saved.list.push({ nom: nom.split(/\s+/).slice(0,2).join(' '), mitja, tipus });
+  lsSet('eh_acreditats', saved);
+  closeModal('ac-add-modal');
+  navigate('accreditations');
+}
+
+function importarAcreditats(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    let files = [];
+    if (['xlsx','xls'].includes(ext)) {
+      if (!window.XLSX) return toast('Carregant XLSX...', 'info');
+      const wb = XLSX.read(e.target.result, { type:'array' });
+      files = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:'' });
+    } else {
+      const text = e.target.result;
+      const sep = ['\t',';',','].map(s=>({s,n:text.split('\n')[0].split(s).length})).sort((a,b)=>b.n-a.n)[0].s;
+      files = text.split(/\r?\n/).map(l=>l.split(sep));
+    }
+    const saved = lsGet('eh_acreditats') || { local:'EUROPA', visitant:'RIVAL', jornada:'J1', data:'', hora:'', list:[] };
+    const headers = files[0].map(h=>String(h).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim());
+    const hasH = headers.some(h=>['nom','nombre','name','mitja','media'].includes(h));
+    const ni = hasH ? headers.findIndex(h=>['nom','nombre','name'].includes(h)) || 0 : 0;
+    const mi = hasH ? headers.findIndex(h=>['mitja','media','medio','empresa'].includes(h)) || 1 : 1;
+    const rows = hasH ? files.slice(1) : files;
+    let count = 0;
+    rows.forEach(row => {
+      const nom = String(row[ni]||'').trim().split(/\s+/).slice(0,2).join(' ');
+      const mitja = String(row[mi]||'').trim();
+      if (!nom || !mitja) return;
+      const tipus = row.some(c=>/fot[oó]/i.test(String(c))) ? 'fotograf' : 'premsa';
+      saved.list.push({ nom, mitja, tipus });
+      count++;
+    });
+    lsSet('eh_acreditats', saved);
+    toast(`${count} acreditats importats`, 'success');
+    navigate('accreditations');
+  };
+  ['xlsx','xls'].includes(ext) ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
+}
+
+async function generarPDFAcreditacions() {
+  const saved = lsGet('eh_acreditats') || { local:'EUROPA', visitant:'RIVAL', jornada:'J1', data:'', hora:'', list:[] };
+  saveAcredDades();
+  const list = saved.list;
+  if (!list.length) return toast('No hi ha acreditats per exportar', 'error');
+  if (!window.jspdf || !window.html2canvas) return toast('Carregant llibreries PDF...', 'info');
+
+  const local    = (document.getElementById('ac-local')?.value || saved.local).toUpperCase();
+  const visitant = (document.getElementById('ac-visitant')?.value || saved.visitant).toUpperCase();
+  const jornada  = (document.getElementById('ac-jornada')?.value || saved.jornada).toUpperCase();
+  const data     = document.getElementById('ac-data')?.value || saved.data;
+  const hora     = document.getElementById('ac-hora')?.value || saved.hora;
+  const dataFmt  = data ? new Date(data+'T12:00:00').toLocaleDateString('ca-ES') : '';
+
+  const TIPUS_BG = {
+    organitzacio: 'assets/AcreditacionesORGANIZACION.png',
+    premsa:       'assets/AcreditacionesPRENSA.png',
+    fotograf:     'assets/AcreditacionesFOTOGRAFO.png',
+  };
+
+  const root = document.getElementById('pdf-root');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation:'portrait', unit:'px', format:[794,1123] });
+  const btn = document.querySelector('[onclick="generarPDFAcreditacions()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generant...'; }
+
+  function ticketHTML(a, pos) {
+    if (!a) return '';
+    return `<div class="ac-ticket ac-ticket-${pos}">
+      <div class="ac-match"><div class="ac-team">${local}</div><div class="ac-vs-gap"></div><div class="ac-team">${visitant}</div></div>
+      <div class="ac-info">
+        <div class="ac-row"><span class="ac-season">Temporada 25/26</span><span class="ac-matchday">${jornada}</span><span class="ac-gate">GO2</span></div>
+        <div class="ac-stadium">Can Drag&oacute;</div>
+        <div class="ac-row ac-date-row"><span class="ac-date">${dataFmt}</span><span class="ac-time">${hora}</span></div>
+      </div>
+      <div class="ac-namebox"><div class="ac-name">${a.nom.toUpperCase()}</div></div>
+      <div class="ac-mediabox"><div class="ac-media">${a.mitja.toUpperCase()}</div></div>
+    </div>`;
+  }
+
+  try {
+    await document.fonts.ready;
+    const total = Math.ceil(list.length / 2);
+    for (let p = 0; p < total; p++) {
+      const top = list[p*2], bottom = list[p*2+1];
+      root.innerHTML = `
+      <div class="ac-page">
+        <div class="ac-bg-half ac-bg-top"><img class="ac-pdf-bg" src="${TIPUS_BG[top?.tipus||'organitzacio']}" alt=""></div>
+        <div class="ac-bg-half ac-bg-bottom"><img class="ac-pdf-bg" src="${TIPUS_BG[(bottom||top)?.tipus||'organitzacio']}" alt=""></div>
+        ${ticketHTML(top,'top')}${ticketHTML(bottom,'bottom')}
+      </div>`;
+      await Promise.all([...root.querySelectorAll('img')].map(img => img.complete ? Promise.resolve() : new Promise(r=>{img.onload=r;img.onerror=r;})));
+      await new Promise(r => requestAnimationFrame(r));
+      const canvas = await html2canvas(root.querySelector('.ac-page'), { scale:2, backgroundColor:null, useCORS:true });
+      const img = canvas.toDataURL('image/png');
+      if (p > 0) pdf.addPage();
+      pdf.addImage(img, 'PNG', 0, 0, 794, 1123, undefined, 'NONE');
+      canvas.width = 0; canvas.height = 0;
+    }
+    pdf.save('acreditacions_ce_europa.pdf');
+    toast('PDF generat correctament', 'success');
+  } finally {
+    root.innerHTML = '';
+    if (btn) { btn.disabled = false; btn.textContent = 'Generar PDF'; }
+  }
 }
 
 // ── OFFICE ─────────────────────────────────────────────────
