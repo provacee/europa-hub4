@@ -256,6 +256,7 @@ function scoreColor(v, max=10) {
 
 const ICONS = {
   home:`<path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/>`,
+  settings:`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>`,
   users:`<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>`,
   shield:`<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
   tactical:`<rect x="2" y="3" width="20" height="18" rx="2"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><path d="M8 8l4 6M16 8l-4 6"/>`,
@@ -273,6 +274,8 @@ const ICONS = {
   edit:`<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
   trash:`<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>`,
   logout:`<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>`,
+  email:`<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>`,
+  msg:`<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/>`,
   check:`<polyline points="20 6 9 17 4 12"/>`,
   close:`<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>`,
   play:`<polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>`,
@@ -455,12 +458,8 @@ function renderApp() {
         <img src="assets/escut.svg" alt="CE Europa">
         <span class="desktop-team-name">${currentTeam?.name || 'CE Europa'}</span>
       </div>
-      ${isDesktop ? `
-      <div class="desktop-welcome">
-        <div class="desktop-welcome-name">${currentUser.name.split(' ')[0].toUpperCase()}</div>
-        <div class="desktop-welcome-role">${DEFAULT_ROLES[currentUser.role]?.label || currentUser.role}</div>
-        <div class="desktop-welcome-hint">Selecciona una aplicació</div>
-      </div>` : `
+      ${isDesktop ? renderWidgets() : ''}
+      ${isDesktop ? `` : `
       <div class="app-window">
         ${renderWindowBar()}
         <div class="window-body" id="page-body">
@@ -474,6 +473,202 @@ function renderApp() {
   bindNav();
   bindPageEvents();
   startClock();
+  applySettings();
+  applyTheme();
+}
+
+const GRADIENT_WALLS = {
+  'gradient-dark':   'linear-gradient(135deg,#060d1c 0%,#0a1628 100%)',
+  'gradient-blue':   'linear-gradient(135deg,#03071e 0%,#023e8a 100%)',
+  'gradient-green':  'linear-gradient(135deg,#081c15 0%,#1b4332 100%)',
+  'gradient-purple': 'linear-gradient(135deg,#10002b 0%,#3c096c 100%)',
+};
+
+function applySettings() {
+  const accent    = lsGet('eh_accent')    || '#2563eb';
+  const wallpaper = lsGet('eh_wallpaper') || null;
+  const r = parseInt(accent.slice(1,3),16);
+  const g = parseInt(accent.slice(3,5),16);
+  const b = parseInt(accent.slice(5,7),16);
+  document.documentElement.style.setProperty('--brand',      accent);
+  document.documentElement.style.setProperty('--brand-mid',  `rgba(${r},${g},${b},.85)`);
+  document.documentElement.style.setProperty('--brand-glow', `rgba(${r},${g},${b},.35)`);
+  document.documentElement.style.setProperty('--brand-dim',  `rgba(${r},${g},${b},.12)`);
+  _applyWallpaper(wallpaper);
+}
+
+const DEFAULT_WALLPAPER = 'assets/grada.jpg';
+
+function _applyWallpaper(val) {
+  const desktop = document.querySelector('.desktop');
+  if (!desktop) return;
+  desktop.removeAttribute('style');
+  if (!val) {
+    desktop.style.cssText = `background:#060d1c url('${DEFAULT_WALLPAPER}') center/cover no-repeat`;
+  } else if (val === 'camp') {
+    desktop.style.cssText = `background:#060d1c url('assets/camp.jpg') center/cover no-repeat`;
+  } else if (GRADIENT_WALLS[val]) {
+    desktop.style.cssText = `background:${GRADIENT_WALLS[val]}`;
+  } else {
+    desktop.style.cssText = `background:#060d1c url('${val}') center/cover no-repeat`;
+  }
+}
+
+function saveAccent(color) {
+  lsSet('eh_accent', color);
+  applySettings();
+  document.querySelectorAll('.settings-accent-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.color === color);
+  });
+}
+
+function saveWallpaper(val) {
+  lsSet('eh_wallpaper', val);
+  _applyWallpaper(val);
+  navigate('settings');
+}
+
+function applyTheme() {
+  const t = lsGet('eh_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+}
+
+function saveTheme(t) {
+  lsSet('eh_theme', t);
+  applyTheme();
+  navigate('settings');
+}
+
+function renderWidgets() {
+  if (!currentUser) return '';
+  const shown = lsGet('eh_widgets') ?? { stats:true, match:true, tasks:true, wellness:true };
+  const players   = (DB.players()||[]).filter(p=>p.person_type!=='staff');
+  const trainings = DB.trainings()||[];
+  const tasks     = (DB.tasks()||[]).filter(t=>t.status!=='done');
+  const sel       = DB.selection();
+  let html = '<div class="desktop-widgets">';
+
+  if (shown.tasks) {
+    const pendents = tasks.filter(t => t.status !== 'done');
+    html += `
+    <div class="widget widget-tasks" onclick="navigate('tasks')">
+      <div class="widget-tasks-title">Tasques Pendents <span style="background:var(--brand);color:#fff;border-radius:20px;padding:1px 7px;font-size:.6rem;margin-left:4px">${pendents.length}</span></div>
+      ${pendents.length === 0
+        ? `<div style="font-size:.72rem;color:rgba(255,255,255,.2);padding:4px 0">Cap tasca pendent</div>`
+        : pendents.slice(0,4).map(t => {
+          const statusDot = t.status==='in_progress' ? 'var(--brand)' : 'rgba(255,255,255,.25)';
+          return `<div class="widget-task-row">
+            <div class="widget-task-dot" style="background:${statusDot};box-shadow:${t.status==='in_progress'?'0 0 6px var(--brand)':'none'}"></div>
+            <span>${t.title}</span>
+          </div>`;
+        }).join('')}
+      ${pendents.length>4?`<div class="widget-task-more">+${pendents.length-4} més</div>`:''}
+    </div>`;
+  }
+
+  if (shown.match && sel && sel.rival) {
+    const matchDate = sel.match_date ? new Date(sel.match_date).toLocaleDateString('ca-ES',{day:'numeric',month:'short'}) : '—';
+    html += `
+    <div class="widget widget-match" onclick="navigate('selection')">
+      <div class="widget-match-label">Proper Partit</div>
+      <div class="widget-match-rival">${sel.rival}</div>
+      <div class="widget-match-meta">
+        <span>${matchDate}${sel.match_time?' · '+sel.match_time:''}</span>
+        ${sel.venue?`<span>${sel.venue}</span>`:''}
+      </div>
+      ${sel.published?`<div class="widget-match-published">✓ Convocatòria publicada</div>`:''}
+    </div>`;
+  }
+
+  const photoUrl = lsGet('eh_widget_photo') || null;
+  if (shown.photo) {
+    html += `
+    <div class="widget widget-photo" ${photoUrl?`style="background-image:url('${photoUrl}')"`:''}>
+      ${!photoUrl ? `<div class="widget-photo-empty">
+        <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+          <input type="file" accept="image/*" style="display:none" onchange="saveWidgetPhoto(this)">
+          <span style="font-size:1.5rem;opacity:.3">🖼</span>
+          <span style="font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.25)">Afegir foto</span>
+        </label>
+      </div>` : `
+      <div class="widget-photo-overlay"></div>
+      <label class="widget-photo-change" title="Canviar foto">
+        <input type="file" accept="image/*" style="display:none" onchange="saveWidgetPhoto(this)">
+        ✎
+      </label>`}
+    </div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function saveWidgetPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { lsSet('eh_widget_photo', e.target.result); navigate('desktop'); };
+  reader.readAsDataURL(file);
+}
+
+function toggleWidget(key) {
+  const w = lsGet('eh_widgets') ?? { tasks:true, match:true, photo:true };
+  w[key] = !w[key];
+  lsSet('eh_widgets', w);
+  navigate('settings');
+}
+
+// ── MESSAGING ──────────────────────────────────────────────
+
+function getMessages() { return lsGet('eh_messages') || []; }
+
+function sendMessage(toId, text) {
+  if (!text?.trim()) return;
+  const msgs = getMessages();
+  msgs.push({ id:uid(), from:currentUser.id, to:toId, text:text.trim(), date:new Date().toISOString(), read:false });
+  lsSet('eh_messages', msgs);
+}
+
+function markConvRead(otherId) {
+  const msgs = getMessages();
+  msgs.forEach(m => { if (m.to === currentUser.id && m.from === otherId) m.read = true; });
+  lsSet('eh_messages', msgs);
+}
+
+function getConversations() {
+  const msgs = getMessages();
+  const me = currentUser.id;
+  const users = DB.users();
+  const convs = {};
+  msgs.forEach(m => {
+    const other = m.from === me ? m.to : m.from;
+    if (!convs[other]) convs[other] = [];
+    convs[other].push(m);
+  });
+  return Object.entries(convs).map(([uid, ms]) => {
+    const u = users.find(u => u.id === uid);
+    if (!u) return null;
+    const sorted = [...ms].sort((a,b) => new Date(a.date)-new Date(b.date));
+    return { user:u, msgs:sorted, last:sorted[sorted.length-1], unread:sorted.filter(m=>m.to===me&&!m.read).length };
+  }).filter(Boolean).sort((a,b) => new Date(b.last.date)-new Date(a.last.date));
+}
+
+function unreadCount() {
+  if (!currentUser) return 0;
+  return getMessages().filter(m => m.to===currentUser.id && !m.read).length;
+}
+
+function saveWallpaperCustom(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    lsSet('eh_wallpaper', dataUrl);
+    _applyWallpaper(dataUrl);
+    navigate('settings');
+  };
+  reader.readAsDataURL(file);
 }
 
 function startClock() {
@@ -522,6 +717,16 @@ function renderLogin() {
   `;
 }
 
+function renderLoading() {
+  return `
+  <div class="loading-screen">
+    <div class="loading-bg"></div>
+    <img src="assets/escut.svg" class="loading-logo" alt="CE Europa">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregant dades…</div>
+  </div>`;
+}
+
 function bindLogin() {
   document.getElementById('login-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -532,9 +737,7 @@ function bindLogin() {
       document.getElementById('login-error').style.display = 'block';
       return;
     }
-    /* Mostrar indicador mentre es carreguen les dades de Supabase */
-    btn.textContent = 'Carregant…';
-    btn.disabled = true;
+    document.getElementById('app').innerHTML = renderLoading();
     await initTeam();
     navigate('desktop');
   });
@@ -555,12 +758,14 @@ function renderTaskbar() {
     </div>
     <div class="taskbar-sep"></div>
     <div class="taskbar-dock">
-      ${navItems.map(item => `
-        <div class="dock-item ${currentPage===item.page?'active':''}" data-page="${item.page}">
+      ${navItems.map(item => {
+        const badge = item.page==='messaging' ? unreadCount() : 0;
+        return `<div class="dock-item ${currentPage===item.page?'active':''}" data-page="${item.page}">
           ${item.icon}
+          ${badge>0?`<div class="dock-badge">${badge}</div>`:''}
           <div class="dock-tooltip">${item.label}</div>
-        </div>
-      `).join('')}
+        </div>`;
+      }).join('')}
     </div>
     <div class="taskbar-sep"></div>
     <div class="taskbar-right">
@@ -577,7 +782,7 @@ function renderTaskbar() {
 
 function buildNavItems() {
   const items = [];
-  items.push({ page:'home', label:'Inici', icon:ico('home') });
+  items.push({ page:'settings', label:'Configuració', icon:ico('settings') });
   if (can('squad')||can('tactical')||can('training')||can('veo')||can('tasks')||can('wellness')||can('selection')) {
     items.push({ section:'Àrea Esportiva 1' });
     if (can('squad'))     items.push({ page:'squad',     label:'Plantilla',        icon:ico('users') });
@@ -597,6 +802,8 @@ function buildNavItems() {
   }
   if (can('scouting'))       { items.push({ section:'Scouting' }); items.push({ page:'scouting', label:'Scouting', icon:ico('scouting') }); }
   if (can('communication'))  { items.push({ section:'Comunicació' }); items.push({ page:'communication', label:'Comunicació', icon:ico('comm') }); }
+  items.push({ page:'messaging', label:'Missatgeria', icon:ico('msg') });
+  items.push({ page:'email',     label:'Correu',      icon:ico('email') });
   if (can('office'))         { items.push({ section:'Oficina' }); items.push({ page:'office', label:'Oficina', icon:ico('office') }); }
   if (can('members'))        { items.push({ section:'Socis' }); items.push({ page:'members', label:'Àrea de Soci', icon:ico('member') }); }
   if (can('staff_view')) {
@@ -614,7 +821,7 @@ function buildNavItems() {
 
 function renderWindowBar() {
   const titles = {
-    home:'Inici', squad:'Plantilla', tactical:'Pissarra Tàctica', training:'Entrenaments',
+    home:'Inici', settings:'Configuració', squad:'Plantilla', tactical:'Pissarra Tàctica', training:'Entrenaments',
     veo:'Anàlisi VEO', tasks:'Tasques Staff', wellness:'Wellness', selection:'Convocatòria',
     player_training:'Entrenaments', player_veo:'Anàlisi VEO', player_selection:'Convocatòria', player_wellness:'Wellness',
     scouting:'Scouting', communication:'Comunicació', office:'Oficina', members:'Àrea de Soci',
@@ -670,6 +877,9 @@ function renderPage() {
     case 'admin_users':      return renderAdminUsers();
     case 'admin_roles':      return renderAdminRoles();
     case 'admin_perms':      return renderAdminPerms();
+    case 'settings':          return renderSettings();
+    case 'messaging':         return renderMessaging();
+    case 'email':             return renderEmail();
     default: return `<div class="empty-state"><h3>Pàgina no trobada</h3></div>`;
   }
 }

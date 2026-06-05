@@ -1,6 +1,322 @@
 /* ============================================================
-   EUROPA HUB v2 — Pages: Scouting · Comm · Office · Members · Admin
+   EUROPA HUB v2 — Pages: Settings · Scouting · Comm · Office · Members · Admin
    ============================================================ */
+
+// ── SETTINGS ───────────────────────────────────────────────
+
+function renderSettings() {
+  const currentAccent   = lsGet('eh_accent')    || '#2563eb';
+  const currentWall     = lsGet('eh_wallpaper')  || null;
+  const currentTheme    = lsGet('eh_theme')      || 'dark';
+  const currentWidgets  = lsGet('eh_widgets')    ?? { stats:true, match:true, tasks:true, wellness:true };
+
+  const ACCENTS = [
+    { name:'Blau Europa (predeterminat)', color:'#2563eb' },
+    { name:'Vermell',  color:'#dc2626' },
+    { name:'Verd',     color:'#16a34a' },
+    { name:'Violeta',  color:'#9333ea' },
+    { name:'Taronja',  color:'#ea580c' },
+    { name:'Cian',     color:'#0891b2' },
+    { name:'Rosa',     color:'#db2777' },
+  ];
+
+  const WALLS = [
+    { name:'Grada (predeterminat)', val:null,            preview:'assets/grada.jpg' },
+    { name:'Camp',                  val:'camp',          preview:'assets/camp.jpg' },
+    { name:'Fosc Nocturn',         val:'gradient-dark',  preview:null, gradient:'linear-gradient(135deg,#060d1c 0%,#0a1628 100%)' },
+    { name:'Blau Profund',         val:'gradient-blue',  preview:null, gradient:'linear-gradient(135deg,#03071e 0%,#023e8a 100%)' },
+    { name:'Verd Bosc',            val:'gradient-green', preview:null, gradient:'linear-gradient(135deg,#081c15 0%,#1b4332 100%)' },
+    { name:'Nit Violeta',          val:'gradient-purple',preview:null, gradient:'linear-gradient(135deg,#10002b 0%,#3c096c 100%)' },
+  ];
+
+  const getWallStyle = (w) => w.preview
+    ? `background:url('${w.preview}') center/cover`
+    : `background:${w.gradient}`;
+
+  return `
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">Configuració</div>
+      <div class="page-subtitle">Personalitza l'aparença del sistema</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:32px;max-width:760px">
+
+    <div class="settings-section">
+      <div class="settings-section-title">Color d'accent</div>
+      <div class="settings-section-desc">S'aplica a botons, indicadors actius i elements destacats.</div>
+      <div class="settings-accents">
+        ${ACCENTS.map(a => `
+          <div class="settings-accent-item ${currentAccent===a.color?'active':''}"
+               data-color="${a.color}"
+               onclick="saveAccent('${a.color}')" title="${a.name}">
+            <div class="settings-accent-dot" style="background:${a.color}"></div>
+            ${currentAccent===a.color ? `<div class="settings-accent-check">✓</div>` : ''}
+          </div>`).join('')}
+        <label class="settings-accent-custom" title="Color personalitzat">
+          <input type="color" id="custom-accent-input" value="${currentAccent}"
+                 oninput="saveAccent(this.value)">
+          <span class="settings-accent-dot" style="background: conic-gradient(red,yellow,lime,cyan,blue,magenta,red)"></span>
+          <span style="font-size:.65rem;color:var(--text3);margin-top:2px">Personalitzat</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Fons de pantalla</div>
+      <div class="settings-section-desc">El fons que es veu darrere les finestres.</div>
+      <div class="settings-walls">
+        ${WALLS.map(w => `
+          <div class="settings-wall-item ${(!w.val&&!currentWall)||(currentWall===w.val)?'active':''}"
+               onclick="saveWallpaper(${w.val?`'${w.val}'`:'null'})"
+               style="${getWallStyle(w)}">
+            <div class="settings-wall-overlay"></div>
+            <div class="settings-wall-name">${w.name}</div>
+            ${((!w.val&&!currentWall)||(currentWall===w.val)) ? `<div class="settings-wall-check">✓</div>` : ''}
+          </div>`).join('')}
+        ${currentWall && !GRADIENT_WALLS[currentWall] && currentWall !== null && currentWall.startsWith('data:') ? `
+          <div class="settings-wall-item active" style="background:url('${currentWall}') center/cover">
+            <div class="settings-wall-overlay"></div>
+            <div class="settings-wall-name">Foto personalitzada</div>
+            <div class="settings-wall-check">✓</div>
+          </div>` : ''}
+        <label class="settings-wall-upload" title="Afegir foto de la galeria">
+          <input type="file" accept="image/*" style="display:none" onchange="saveWallpaperCustom(this)">
+          <div class="settings-wall-upload-icon">+</div>
+          <div class="settings-wall-upload-label">Galeria</div>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Tema</div>
+      <div class="settings-section-desc">Aparença general de les finestres i contingut.</div>
+      <div class="settings-themes">
+        <div class="settings-theme-option ${currentTheme==='dark'?'active':''}" onclick="saveTheme('dark')">
+          <div class="settings-theme-preview settings-theme-dark">
+            <div class="stp-bar"></div><div class="stp-card"></div><div class="stp-card stp-card-sm"></div>
+          </div>
+          <div class="settings-theme-label">Fosc${currentTheme==='dark'?' ✓':''}</div>
+        </div>
+        <div class="settings-theme-option ${currentTheme==='light'?'active':''}" onclick="saveTheme('light')">
+          <div class="settings-theme-preview settings-theme-light-prev">
+            <div class="stp-bar"></div><div class="stp-card"></div><div class="stp-card stp-card-sm"></div>
+          </div>
+          <div class="settings-theme-label">Clar${currentTheme==='light'?' ✓':''}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">Widgets del Desktop</div>
+      <div class="settings-section-desc">Elements visibles al desktop quan no hi ha cap finestra oberta.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        ${[
+          { key:'tasks', label:'Tasques Pendents',  desc:'Llista de tasques sense completar' },
+          { key:'match', label:'Proper Partit',     desc:'Informació de la propera convocatòria' },
+          { key:'photo', label:'Foto personalitzada',desc:'Una imatge de la galeria del dispositiu' },
+        ].map(w => `
+        <div class="settings-widget-toggle">
+          <div>
+            <div style="font-size:.8rem;font-weight:600;color:var(--text)">${w.label}</div>
+            <div style="font-size:.72rem;color:var(--text3);margin-top:2px">${w.desc}</div>
+          </div>
+          <div class="toggle ${currentWidgets[w.key]?'on':''}" onclick="toggleWidget('${w.key}')"></div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+  </div>`;
+}
+
+// ── MESSAGING ──────────────────────────────────────────────
+
+let _activeConv = null;
+
+function renderMessaging() {
+  const convs   = getConversations();
+  const users   = DB.users().filter(u => u.id !== currentUser.id);
+  const active  = _activeConv ? convs.find(c => c.user.id === _activeConv) : null;
+
+  if (_activeConv) markConvRead(_activeConv);
+
+  const msgHtml = active ? active.msgs.map(m => {
+    const mine = m.from === currentUser.id;
+    const d = new Date(m.date).toLocaleTimeString('ca-ES',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="msg-bubble ${mine?'msg-mine':'msg-theirs'}">
+      <div class="msg-text">${m.text}</div>
+      <div class="msg-time">${d}</div>
+    </div>`;
+  }).join('') : '';
+
+  return `
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">Missatgeria</div>
+      <div class="page-subtitle">Comunicació interna de l'equip</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" onclick="openNewMsgModal()">${ico('plus')} Nou Missatge</button>
+    </div>
+  </div>
+  <div class="msg-layout">
+    <div class="msg-sidebar">
+      ${users.map(u => {
+        const conv = convs.find(c => c.user.id === u.id);
+        return `<div class="msg-conv-item ${_activeConv===u.id?'active':''}" onclick="_activeConv='${u.id}';navigate('messaging')">
+          <div class="avatar">${u.avatar}</div>
+          <div class="msg-conv-info">
+            <div class="msg-conv-name">${u.name.split(' ')[0]}</div>
+            <div class="msg-conv-last">${conv?.last?.text?.slice(0,30)||DEFAULT_ROLES[u.role]?.label||''}${conv?.last?.text?.length>30?'…':''}</div>
+          </div>
+          ${conv?.unread ? `<div class="msg-unread-badge">${conv.unread}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="msg-main">
+      ${active ? `
+        <div class="msg-header">
+          <div class="avatar">${active.user.avatar}</div>
+          <div>
+            <div class="msg-header-name">${active.user.name}</div>
+            <div class="msg-header-role">${DEFAULT_ROLES[active.user.role]?.label||active.user.role}</div>
+          </div>
+        </div>
+        <div class="msg-thread" id="msg-thread">${msgHtml}</div>
+        <div class="msg-compose">
+          <input class="form-input" id="msg-input" placeholder="Escriu un missatge…" onkeydown="if(event.key==='Enter')submitMsg('${active.user.id}')">
+          <button class="btn btn-primary" onclick="submitMsg('${active.user.id}')">${ico('publish')}</button>
+        </div>` : `
+        <div class="msg-empty-state">
+          ${ico('msg')}
+          <div>Selecciona una conversa per começar</div>
+        </div>`}
+    </div>
+  </div>
+  <div id="msg-modal"></div>`;
+}
+
+function submitMsg(toId) {
+  const input = document.getElementById('msg-input');
+  if (!input || !input.value.trim()) return;
+  sendMessage(toId, input.value);
+  navigate('messaging');
+}
+
+function openNewMsgModal() {
+  const users = DB.users().filter(u => u.id !== currentUser.id);
+  document.getElementById('msg-modal').innerHTML = `
+  <div class="modal-overlay" id="new-msg-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Nou Missatge</div>
+        <button class="btn-icon" onclick="closeModal('new-msg-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Destinatari</label>
+          <select class="form-select" id="nm-to">
+            ${users.map(u=>`<option value="${u.id}">${u.name} — ${DEFAULT_ROLES[u.role]?.label||u.role}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Missatge</label>
+          <textarea class="form-textarea" id="nm-text" placeholder="Escriu aquí…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('new-msg-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="sendNewMsg()">${ico('publish')} Enviar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function sendNewMsg() {
+  const to   = document.getElementById('nm-to').value;
+  const text = document.getElementById('nm-text').value;
+  if (!text.trim()) return;
+  sendMessage(to, text);
+  closeModal('new-msg-modal');
+  _activeConv = to;
+  navigate('messaging');
+}
+
+// ── EMAIL ──────────────────────────────────────────────────
+
+function renderEmail() {
+  const cfg  = lsGet('eh_email') || { provider:'gmail', url:'', address:'' };
+  const players = DB.players();
+
+  const PROVIDERS = [
+    { id:'gmail',   label:'Gmail',   url:'https://mail.google.com',      logo:'G' },
+    { id:'outlook', label:'Outlook', url:'https://outlook.live.com/mail', logo:'O' },
+    { id:'custom',  label:'WebMail', url:cfg.url||'',                    logo:'@' },
+  ];
+  const active = PROVIDERS.find(p=>p.id===cfg.provider) || PROVIDERS[0];
+  const openUrl = cfg.provider==='custom' ? (cfg.url||'') : active.url;
+
+  return `
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">Correu</div>
+      <div class="page-subtitle">Accés ràpid al correu i contacte amb jugadors</div>
+    </div>
+    <div class="page-actions">
+      ${openUrl ? `<a href="${openUrl}" target="_blank" class="btn btn-primary">${ico('email')} Obrir correu</a>` : ''}
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:28px;max-width:800px">
+
+    <div>
+      <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px">Proveïdor</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${PROVIDERS.map(p=>`
+        <div class="email-provider-card ${cfg.provider===p.id?'active':''}" onclick="saveEmailProvider('${p.id}')">
+          <div class="email-provider-logo">${p.logo}</div>
+          <div class="email-provider-name">${p.label}</div>
+        </div>`).join('')}
+      </div>
+      ${cfg.provider==='custom' ? `
+      <div class="form-group" style="margin-top:12px;max-width:380px">
+        <label class="form-label">URL del WebMail</label>
+        <input class="form-input" id="email-custom-url" placeholder="https://webmail.exemple.com" value="${cfg.url||''}">
+        <button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="saveEmailCustomUrl()">Guardar URL</button>
+      </div>` : ''}
+    </div>
+
+    <div>
+      <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:12px">Contactes ràpids — Jugadors</div>
+      <div style="display:flex;flex-direction:column;gap:1px">
+        ${players.filter(p=>p.email).map(p=>`
+        <div class="email-contact-row">
+          <div class="avatar sm">${((p.name||'?')[0]+(p.surname||'?')[0]).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.8125rem;font-weight:600">${p.name} ${p.surname}</div>
+            <div style="font-size:.71rem;color:var(--text3)">${p.email}</div>
+          </div>
+          <a href="mailto:${p.email}" class="btn btn-ghost btn-sm">${ico('email')} Escriure</a>
+        </div>`).join('')}
+        ${players.filter(p=>!p.email).length > 0 ? `
+        <div style="font-size:.72rem;color:var(--text3);padding:10px 0;text-align:center">${players.filter(p=>!p.email).length} jugadors sense email registrat</div>` : ''}
+      </div>
+    </div>
+
+  </div>`;
+}
+
+function saveEmailProvider(id) {
+  const cfg = lsGet('eh_email') || {};
+  cfg.provider = id;
+  lsSet('eh_email', cfg);
+  navigate('email');
+}
+function saveEmailCustomUrl() {
+  const cfg = lsGet('eh_email') || {};
+  cfg.url = document.getElementById('email-custom-url')?.value || '';
+  lsSet('eh_email', cfg);
+  navigate('email');
+}
 
 // ── SCOUTING ───────────────────────────────────────────────
 
