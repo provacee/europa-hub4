@@ -188,10 +188,14 @@ function restoreSession() {
 
 function can(perm) {
   if (!currentUser) return false;
+  // 1. Per-user override (màxima prioritat)
   const overrides = (lsGet('eh_user_perms') || {})[currentUser.id];
   if (overrides && overrides.hasOwnProperty(perm)) return !!overrides[perm];
-  const perms = DB.permissions();
-  return !!(perms[currentUser.role] || {})[perm];
+  // 2. Permisos del rol a la BD
+  const dbPerms = (DB.permissions()[currentUser.role] || {});
+  if (dbPerms.hasOwnProperty(perm)) return !!dbPerms[perm];
+  // 3. Fallback als permisos per defecte (evita problemes si Supabase no té el rol)
+  return !!(DEFAULT_PERMISSIONS[currentUser.role] || {})[perm];
 }
 
 function saveUserPerm(userId, perm, value) {
@@ -298,12 +302,12 @@ const ICONS = {
   users:`<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>`,
   shield:`<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
   tactical:`<rect x="2" y="3" width="20" height="18" rx="2"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><path d="M8 8l4 6M16 8l-4 6"/>`,
-  training:`<circle cx="12" cy="12" r="9"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>`,
+  training:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
   video:`<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>`,
   tasks:`<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
   wellness:`<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>`,
-  selection:`<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>`,
-  scouting:`<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>`,
+  selection:`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>`,
+  scouting:`<circle cx="5" cy="14" r="4"/><circle cx="19" cy="14" r="4"/><line x1="9" y1="14" x2="15" y2="14"/><path d="M9 14V9a3 3 0 016 0v5"/>`,
   comm:`<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>`,
   office:`<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>`,
   member:`<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
