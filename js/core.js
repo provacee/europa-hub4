@@ -986,6 +986,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   showLoader();
   await initDB();
   const sessionOk = restoreSession();
-  if (sessionOk) await initTeam();
+  if (sessionOk) {
+    await initTeam();
+    if (currentUser?.role === 'administrator') currentPage = 'admin_dashboard';
+  }
   renderApp();
 });
