@@ -1062,7 +1062,8 @@ async function saveNewTeam() {
   const team = await DB.createTeam(name, desc, season);
   closeModal('create-team-modal');
   toast(`Equip "${name}" creat!`, 'success');
-  navigate('squad');
+  // Oferir immediatament convidar un entrenador
+  openInviteToTeamModal(team.id, 'coach', 'Convidar Entrenador/a');
 }
 
 function openEditTeamModal(teamId) {
@@ -1140,11 +1141,16 @@ async function deleteTeam(teamId) {
 }
 
 function openTeamMembersModal(teamId) {
-  const team    = DB.teams().find(t => t.id === teamId);
-  const members = DB.teamMembers().filter(m => m.team_id === teamId);
-  const users   = DB.users();
+  const team      = DB.teams().find(t => t.id === teamId);
+  const members   = DB.teamMembers().filter(m => m.team_id === teamId);
+  const users     = DB.users();
   const teamUsers = members.map(m => users.find(u => u.id === m.user_id)).filter(Boolean);
-  const nonMembers = users.filter(u => !members.some(m => m.user_id === u.id));
+
+  // Invitacions pendents per a aquest equip
+  const pending = (DB.invitations ? DB.invitations() : [])
+    .filter(i => i.team_id === teamId && i.status === 'pending');
+
+  const canInviteCoach = ['administrator','sporting_director'].includes(currentUser.role);
 
   document.getElementById('team-modal-container').innerHTML = `
   <div class="modal-overlay" id="team-members-modal">
@@ -1154,23 +1160,60 @@ function openTeamMembersModal(teamId) {
         <button class="btn-icon" onclick="closeModal('team-members-modal')">${ico('close')}</button>
       </div>
       <div class="modal-body">
-        <div style="font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Membres actuals</div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
-          ${teamUsers.map(u => `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+
+        <!-- Membres actuals -->
+        <div style="font-size:.67rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Membres actuals</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:20px">
+          ${teamUsers.length ? teamUsers.map(u => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:10px">
             <div class="avatar">${u.avatar}</div>
-            <div style="flex:1"><div style="font-size:.8125rem;font-weight:500">${u.name}</div><div style="font-size:.7rem;color:var(--text3)">${DEFAULT_ROLES[u.role]?.label||u.role}</div></div>
+            <div style="flex:1">
+              <div style="font-size:.8125rem;font-weight:600">${u.name}</div>
+              <div style="font-size:.7rem;color:var(--text3)">${DEFAULT_ROLES[u.role]?.label||u.role}</div>
+            </div>
             <button class="btn btn-danger btn-sm" onclick="removeMember('${teamId}','${u.id}')">${ico('trash')}</button>
-          </div>`).join('') || '<div style="color:var(--text3);font-size:.8rem">Cap membre</div>'}
+          </div>`).join('') : `<div style="color:var(--text3);font-size:.82rem;padding:8px 0">Cap membre actiu encara.</div>`}
         </div>
-        ${nonMembers.length > 0 ? `
-        <div style="font-size:.7rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">Afegir membre</div>
-        <div style="display:flex;gap:8px">
-          <select class="form-select" id="add-member-select" style="flex:1">
-            ${nonMembers.map(u => `<option value="${u.id}">${u.name} (${DEFAULT_ROLES[u.role]?.label||u.role})</option>`).join('')}
-          </select>
-          <button class="btn btn-primary" onclick="addMember('${teamId}')">Afegir</button>
+
+        <!-- Invitacions pendents -->
+        ${pending.length ? `
+        <div style="font-size:.67rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Invitacions pendents</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:20px">
+          ${pending.map(i => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--amber-dim);border:1px solid rgba(255,159,10,.2);border-radius:10px">
+            <div class="avatar" style="background:var(--amber)">${i.player_name[0]}${i.player_surname[0]}</div>
+            <div style="flex:1">
+              <div style="font-size:.8125rem;font-weight:600">${i.player_name} ${i.player_surname}</div>
+              <div style="font-size:.7rem;color:var(--text3)">${i.email} · ${DEFAULT_ROLES[i.role]?.label||i.role} · Pendent</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="copyInviteLink('${i.token}')">Copiar enllaç</button>
+          </div>`).join('')}
         </div>` : ''}
+
+        <!-- Afegir entrenador -->
+        ${canInviteCoach ? `
+        <div style="font-size:.67rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Afegir entrenador/a</div>
+
+        <!-- Opció A: usuari existent -->
+        ${(() => {
+          const coaches = DB.users().filter(u =>
+            ['coach','sporting_director','administrator'].includes(u.role) &&
+            !members.some(m => m.user_id === u.id)
+          );
+          return coaches.length ? `
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <select class="form-select" id="add-coach-select" style="flex:1">
+              ${coaches.map(u => `<option value="${u.id}">${u.name} — ${DEFAULT_ROLES[u.role]?.label||u.role}</option>`).join('')}
+            </select>
+            <button class="btn btn-primary" onclick="addExistingCoach('${teamId}')">${ico('plus')} Afegir</button>
+          </div>
+          <div style="text-align:center;font-size:.72rem;color:var(--text3);margin-bottom:8px">— o bé —</div>` : '';
+        })()}
+
+        <!-- Opció B: invitar per email -->
+        <button class="btn btn-ghost" style="width:100%" onclick="closeModal('team-members-modal');openInviteToTeamModal('${teamId}','coach','Convidar Entrenador/a')">${ico('mail')} Convidar per email (nou al club)</button>
+        ` : ''}
+
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModal('team-members-modal')">Tancar</button>
@@ -1179,13 +1222,20 @@ function openTeamMembersModal(teamId) {
   </div>`;
 }
 
-async function addMember(teamId) {
-  const userId = document.getElementById('add-member-select').value;
+async function addExistingCoach(teamId) {
+  const userId = document.getElementById('add-coach-select')?.value;
   if (!userId) return;
   await DB.addTeamMember(teamId, userId);
-  toast('Membre afegit', 'success');
+  toast('Entrenador/a afegit a l\'equip', 'success');
   openTeamMembersModal(teamId);
 }
+
+function copyInviteLink(token) {
+  const url = `${SITE_URL}/#invite-${token}`;
+  navigator.clipboard.writeText(url).then(() => toast('Enllaç copiat!', 'success'));
+}
+
+// Funció eliminada: addMember per select → substituïda per invitació
 
 async function removeMember(teamId, userId) {
   if (!confirm('Treure aquest membre de l\'equip?')) return;
@@ -1200,6 +1250,113 @@ async function handleSwitchTeam(teamId) {
   await switchTeam(team);
   toast(`Equip canviat a "${team.name}"`, 'success');
   navigate('home');
+}
+
+// ── INVITAR A UN EQUIP ─────────────────────────────────────
+
+function openInviteToTeamModal(teamId, role, title) {
+  const team = DB.teams().find(t => t.id === teamId);
+  const roleLabel = DEFAULT_ROLES[role]?.label || role;
+  let container = document.getElementById('team-modal-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'team-modal-container';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = `
+  <div class="modal-overlay" id="invite-team-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${title || 'Convidar'}</div>
+        <button class="btn-icon" onclick="closeModal('invite-team-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:.82rem;color:var(--text2)">
+          Envia una invitació per correu electrònic a un/a <strong>${roleLabel}</strong> per a l'equip <strong>${team?.name||''}</strong>.
+          Podrà crear el seu compte i accedir directament a l'equip.
+        </p>
+        <div id="ite-error" style="display:none;padding:8px 12px;background:var(--red-dim);border-radius:8px;color:var(--red);font-size:.78rem"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nom *</label>
+            <input class="form-input" id="ite-name" placeholder="Jordi">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cognom *</label>
+            <input class="form-input" id="ite-surname" placeholder="Vilà">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input class="form-input" id="ite-email" type="email" placeholder="entrenador@email.com">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('invite-team-modal');navigate('teams')">Ara no</button>
+        <button class="btn btn-primary" id="ite-send-btn" onclick="saveTeamInvite('${teamId}','${role}')">${ico('mail')} Enviar invitació</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function saveTeamInvite(teamId, role) {
+  const name    = document.getElementById('ite-name').value.trim();
+  const surname = document.getElementById('ite-surname').value.trim();
+  const email   = document.getElementById('ite-email').value.trim();
+  const errEl   = document.getElementById('ite-error');
+  const showErr = (m) => { errEl.textContent = m; errEl.style.display = 'block'; };
+
+  if (!name)    return showErr('El nom és obligatori');
+  if (!surname) return showErr('El cognom és obligatori');
+  if (!email)   return showErr('L\'email és obligatori');
+
+  const btn = document.getElementById('ite-send-btn');
+  btn.disabled = true; btn.textContent = 'Enviant…';
+
+  try {
+    const inv = await DB.createInvitation({
+      teamId, role,
+      playerName: name,
+      playerSurname: surname,
+      email,
+    });
+    await sendInvitationEmail(inv);
+    closeModal('invite-team-modal');
+
+    // Mostrar resultat amb l'enllaç
+    const inviteUrl = `${SITE_URL}/#invite-${inv.token}`;
+    const roleLabel = DEFAULT_ROLES[role]?.label || role;
+    const div = document.createElement('div');
+    div.innerHTML = `
+    <div class="modal-overlay" id="invite-result-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Invitació enviada</div>
+          <button class="btn-icon" onclick="closeModal('invite-result-modal');navigate('teams')">${ico('close')}</button>
+        </div>
+        <div class="modal-body">
+          <div style="padding:12px 14px;background:var(--emerald-dim);border:1px solid rgba(48,209,88,.3);border-radius:10px;font-size:.8125rem;color:var(--emerald);margin-bottom:12px">
+            ${ico('check')} Invitació generada per a <strong>${name} ${surname}</strong> com a ${roleLabel}.
+          </div>
+          <div class="form-group">
+            <label class="form-label">Enllaç d'activació (vàlid 7 dies)</label>
+            <div style="display:flex;gap:6px">
+              <input class="form-input" value="${inviteUrl}" readonly style="font-size:.7rem;font-family:var(--font-mono)">
+              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>toast('Copiat!','success'))">Copiar</button>
+            </div>
+          </div>
+          <p style="font-size:.75rem;color:var(--text3)">Si no arriba el correu, comparteix l'enllaç directament amb la persona convidada.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="closeModal('invite-result-modal');navigate('teams')">Entesos</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(div);
+  } catch(e) {
+    showErr('Error: ' + e.message);
+    btn.disabled = false; btn.innerHTML = ico('mail') + ' Enviar invitació';
+  }
 }
 
 // ── ADMIN: USERS ───────────────────────────────────────────

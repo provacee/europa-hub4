@@ -74,8 +74,8 @@ function renderSquad() {
   const allPeople = DB.players();
   const players   = allPeople.filter(p => p.person_type !== 'staff');
   const staffList = allPeople.filter(p => p.person_type === 'staff');
-  const readOnly  = currentUser.role === 'sporting_director';
-  const canEdit   = !readOnly;
+  const canEdit   = ['administrator','sporting_director','coach'].includes(currentUser.role);
+  const readOnly  = !canEdit;
   const showTeams = can('teams');
   const tab       = _squadTab;
 
@@ -88,6 +88,7 @@ function renderSquad() {
     <div class="page-actions">
       ${tab === 'players' ? `
         <input class="form-input" type="search" id="squad-search" placeholder="Cercar..." style="width:180px">
+        ${can('invite') ? `<button class="btn btn-ghost" onclick="openInvitePlayerModal()">${ico('mail')} Convidar</button>` : ''}
         ${canEdit ? `<button class="btn btn-primary" onclick="openPlayerModal()">${ico('plus')} Nou</button>` : ''}
       ` : `
         ${showTeams ? `<button class="btn btn-primary" onclick="openCreateTeamModal()">${ico('plus')} Nou Equip</button>` : ''}
@@ -474,6 +475,188 @@ function deletePlayer(id) {
   DB.savePlayers(DB.players().filter(p=>p.id!==id));
   toast('Jugador eliminat','success');
   navigate('squad');
+}
+
+// ── CONVIDAR JUGADOR ─────────────────────────────────────────
+
+function openInvitePlayerModal() {
+  if (!currentTeam) return toast('Cal tenir un equip actiu', 'error');
+
+  // Jugadors amb compte que no pertanyen a l'equip actual
+  const teamPlayerIds = new Set(
+    DB.teamMembers().filter(m => m.team_id === currentTeamId).map(m => m.user_id)
+  );
+  const existingPlayers = DB.users().filter(u =>
+    u.role === 'player' && !teamPlayerIds.has(u.id)
+  );
+
+  // Fitxes de jugadors sense compte o d'altres equips
+  const teamPlayerFitxaIds = new Set(
+    DB.players().filter(p => p.team_id === currentTeamId).map(p => p.id)
+  );
+  const otherFitxes = DB.players().filter(p =>
+    p.person_type !== 'staff' && !teamPlayerFitxaIds.has(p.id)
+  );
+
+  const hasExisting = existingPlayers.length > 0 || otherFitxes.length > 0;
+
+  let container = document.getElementById('player-modal-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'player-modal-container';
+    document.body.appendChild(container);
+  }
+  container.innerHTML = `
+  <div class="modal-overlay" id="invite-player-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Afegir Jugador/a</div>
+        <button class="btn-icon" onclick="closeModal('invite-player-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body" style="gap:12px">
+
+        ${hasExisting ? `
+        <!-- Jugadors existents al club -->
+        <div style="font-size:.67rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Jugadors ja al club</div>
+        <div style="display:flex;gap:8px;margin-bottom:4px">
+          <select class="form-select" id="ip-existing-select" style="flex:1">
+            ${existingPlayers.map(u => `<option value="user:${u.id}">${u.name} — compte actiu</option>`).join('')}
+            ${otherFitxes.map(p => `<option value="fitxa:${p.id}">${p.name} ${p.surname}${p.position ? ' · ' + p.position : ''} — fitxa sense compte</option>`).join('')}
+          </select>
+          <button class="btn btn-primary" onclick="addExistingPlayerToTeam()">${ico('plus')} Afegir</button>
+        </div>
+        <div style="text-align:center;font-size:.72rem;color:var(--text3);padding:8px 0">— o bé —</div>
+        ` : ''}
+
+        <!-- Invitar nou jugador -->
+        <div style="font-size:.67rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Jugador nou al club</div>
+        <div id="invite-player-error" style="display:none;padding:8px 12px;background:var(--red-dim);border-radius:8px;color:var(--red);font-size:.78rem"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nom *</label>
+            <input class="form-input" id="ip-name" placeholder="Pol">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cognom *</label>
+            <input class="form-input" id="ip-surname" placeholder="García">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input class="form-input" id="ip-email" type="email" placeholder="pol@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Posició</label>
+          <select class="form-select" id="ip-position">
+            <option value="">Sense especificar</option>
+            <option>Porter</option><option>Defensa</option><option>Lateral</option>
+            <option>Migcampista</option><option>Extrem</option><option>Davanter</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('invite-player-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" id="ip-send-btn" onclick="sendPlayerInviteFromModal()">${ico('mail')} Enviar invitació</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function addExistingPlayerToTeam() {
+  const val = document.getElementById('ip-existing-select')?.value;
+  if (!val) return;
+  const [type, id] = val.split(':');
+
+  if (type === 'user') {
+    // Té compte: afegir com a membre de l'equip
+    await DB.addTeamMember(currentTeamId, id);
+    toast('Jugador/a afegit a l\'equip', 'success');
+  } else {
+    // Fitxa sense compte: moure la fitxa a aquest equip
+    const players = DB.players();
+    const idx = players.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      players[idx] = { ...players[idx], team_id: currentTeamId };
+      DB.savePlayers(players);
+    }
+    toast('Fitxa traslladada a l\'equip', 'success');
+  }
+  closeModal('invite-player-modal');
+  navigate('squad');
+}
+
+async function sendPlayerInviteFromModal() {
+  const name    = document.getElementById('ip-name').value.trim();
+  const surname = document.getElementById('ip-surname').value.trim();
+  const email   = document.getElementById('ip-email').value.trim();
+  const pos     = document.getElementById('ip-position').value;
+  const errEl   = document.getElementById('invite-player-error');
+  const showErr = (m) => { errEl.textContent = m; errEl.style.display = 'block'; };
+
+  if (!name)    return showErr('El nom és obligatori');
+  if (!surname) return showErr('El cognom és obligatori');
+  if (!email)   return showErr('L\'email és obligatori');
+
+  const btn = document.getElementById('ip-send-btn');
+  btn.disabled = true; btn.textContent = 'Enviant…';
+
+  try {
+    // Crear fitxa de jugador (sense compte encara)
+    const playerId = uid();
+    const newPlayer = { id: playerId, name, surname, email, position: pos, person_type: 'player', team_id: currentTeamId };
+    const players = DB.players();
+    players.push(newPlayer);
+    DB.savePlayers(players);
+
+    // Crear invitació
+    const inv = await DB.createInvitation({
+      teamId: currentTeamId,
+      playerId,
+      playerName: name,
+      playerSurname: surname,
+      email,
+      role: 'player',
+    });
+
+    await sendInvitationEmail(inv);
+    closeModal('invite-player-modal');
+    _showInviteResult(inv, email, 'jugador/a');
+    navigate('squad');
+  } catch(e) {
+    showErr('Error enviant la invitació: ' + e.message);
+    btn.disabled = false; btn.innerHTML = ico('mail') + ' Enviar invitació';
+  }
+}
+
+function _showInviteResult(inv, email, roleLabel) {
+  const inviteUrl = `${SITE_URL}/#invite-${inv.token}`;
+  const div = document.createElement('div');
+  div.innerHTML = `
+  <div class="modal-overlay" id="invite-result-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Invitació enviada</div>
+        <button class="btn-icon" onclick="closeModal('invite-result-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div style="padding:12px 14px;background:var(--emerald-dim);border:1px solid rgba(48,209,88,.3);border-radius:10px;font-size:.8125rem;color:var(--emerald);margin-bottom:8px">
+          ${ico('check')} Invitació generada per a <strong>${email}</strong> com a ${roleLabel}.
+        </div>
+        <div class="form-group">
+          <label class="form-label">Enllaç d'activació (vàlid 7 dies)</label>
+          <div style="display:flex;gap:6px">
+            <input class="form-input" value="${inviteUrl}" readonly id="inv-copy-url" style="font-size:.7rem;font-family:var(--font-mono)">
+            <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>toast('Copiat!','success'))">Copiar</button>
+          </div>
+        </div>
+        <p style="font-size:.75rem;color:var(--text3)">Si no arriba el correu, comparteix l'enllaç directament.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('invite-result-modal')">Entesos</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
 }
 
 // ── TACTICAL BOARD v2 ──────────────────────────────────────

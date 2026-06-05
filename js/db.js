@@ -56,6 +56,7 @@ async function initDB() {
     _cache.invitations = lsGet('eh_invitations') || [];
     _cache.permissions = DEFAULT_PERMISSIONS;
     if (!lsGet('eh_initialized')) seedLocalStorage();
+    _migratePermissions();
     loadEntityDataFromLocalStorage();
   }
 }
@@ -212,6 +213,23 @@ function loadEntityDataFromLocalStorage() {
     selected:raw.selected||DEFAULT_SQUAD_SELECTION.selected,
     notSelected:raw.notSelected||DEFAULT_SQUAD_SELECTION.notSelected,
   };
+}
+
+function _migratePermissions() {
+  // Afegeix claus noves de DEFAULT_PERMISSIONS a permisos ja guardats a localStorage
+  const stored = lsGet('eh_permissions');
+  if (!stored) return;
+  let changed = false;
+  for (const role of Object.keys(DEFAULT_PERMISSIONS)) {
+    if (!stored[role]) continue;
+    for (const perm of Object.keys(DEFAULT_PERMISSIONS[role])) {
+      if (!stored[role].hasOwnProperty(perm)) {
+        stored[role][perm] = DEFAULT_PERMISSIONS[role][perm];
+        changed = true;
+      }
+    }
+  }
+  if (changed) lsSet('eh_permissions', stored);
 }
 
 function seedLocalStorage() {

@@ -2,9 +2,28 @@
 <html lang="ca">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Europa Hub — Plataforma digital interna del Club Esportiu Europa">
   <title>Europa Hub · CE Europa</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Europa Hub">
+  <link rel="apple-touch-icon" href="assets/escut.svg">
+
+  <!-- Android / Chrome -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#060d1c" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#0A84FF" media="(prefers-color-scheme: light)">
+
+  <!-- Tile (Windows) -->
+  <meta name="msapplication-TileColor" content="#060d1c">
+  <meta name="msapplication-TileImage" content="assets/escut.svg">
+
   <link rel="icon" href="assets/escut.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/main.css">
 </head>
@@ -32,5 +51,6 @@
   <script src="js/pages2.js"></script>
   <script src="js/pages3.js"></script>
   <script src="js/events.js"></script>
+  <script src="js/pwa-init.js"></script>
 </body>
 </html>

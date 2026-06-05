@@ -28,9 +28,9 @@ const DEFAULT_ROLES = {
 };
 
 const DEFAULT_PERMISSIONS = {
-  administrator:     { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:true,  office:true,  members:true,  admin:true,  teams:true,  staff_view:false },
-  sporting_director: { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:false, office:false, members:false, admin:false, teams:true,  staff_view:false },
-  coach:             { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:false },
+  administrator:     { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:true,  office:true,  members:true,  admin:true,  teams:true,  invite:true,  staff_view:false },
+  sporting_director: { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:true,  scouting:true,  communication:false, office:false, members:false, admin:false, teams:true,  invite:true,  staff_view:false },
+  coach:             { home:true,  squad:true,  tactical:true,  training:true,  veo:true,  tasks:true,  wellness:true,  selection:true,  sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, invite:true,  staff_view:false },
   staff:             { home:true,  squad:false, tactical:true,  training:true,  veo:true,  tasks:true,  wellness:false, selection:false, sporting2:false, scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:true  },
   player:            { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:true,  scouting:false,  communication:false, office:false, members:false, admin:false, teams:false, staff_view:false },
   communication:     { home:true,  squad:false, tactical:false, training:false, veo:false, tasks:false, wellness:false, selection:false, sporting2:false, scouting:false,  communication:true,  office:false, members:false, admin:false, teams:false, staff_view:false },
@@ -428,8 +428,13 @@ function renderInviteAccept(inv, token) {
     <div style="width:460px;display:flex;align-items:center;justify-content:center;padding:40px;border-left:1px solid var(--border)">
       <div style="width:100%;max-width:340px">
         <div style="font-family:var(--font-display);font-size:1.6rem;letter-spacing:.07em;text-transform:uppercase;color:var(--brand);margin-bottom:4px">Activa el teu compte</div>
-        <div style="color:var(--text3);font-size:.8125rem;margin-bottom:24px">
-          Hola, <strong>${inv.player_name} ${inv.player_surname}</strong>. Defineix les teves credencials d'accés.
+        <div style="color:var(--text3);font-size:.8125rem;margin-bottom:8px">
+          Hola, <strong>${inv.player_name} ${inv.player_surname}</strong>. Has estat convidat/da com a
+          <strong>${DEFAULT_ROLES[inv.role]?.label || inv.role}</strong>.
+          Defineix les teves credencials per accedir a l'equip.
+        </div>
+        <div style="padding:8px 12px;background:var(--brand-dim);border:1px solid var(--brand-dim);border-radius:8px;font-size:.75rem;color:var(--brand);margin-bottom:16px">
+          Un cop activat el compte tindràs accés exclusiu a la base de dades de l'equip, compartida amb tots els membres.
         </div>
         <div id="invite-error" style="display:none;padding:8px 12px;background:var(--red-dim);border:1px solid rgba(192,2,14,.2);border-radius:6px;color:var(--red);font-size:.78rem;margin-bottom:12px"></div>
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -529,7 +534,7 @@ function renderApp() {
         <img src="assets/escut.svg" alt="CE Europa">
         <span class="desktop-team-name">${currentTeam?.name || 'CE Europa'}</span>
       </div>
-      ${isDesktop ? renderWidgets() : ''}
+      ${isDesktop ? renderWidgets() + renderDesktopApps() : ''}
       ${isDesktop ? `` : `
       <div class="app-window">
         ${renderWindowBar()}
@@ -546,6 +551,7 @@ function renderApp() {
   startClock();
   applySettings();
   applyTheme();
+  if (currentPage === 'desktop') fetchWeather();
 }
 
 const GRADIENT_WALLS = {
@@ -671,7 +677,173 @@ function renderWidgets() {
   }
 
   html += '</div>';
+
+  // Columna dreta: calendari, temps, notes, missatgeria
+  const shown2 = lsGet('eh_widgets') ?? { tasks:true, match:true, photo:true, calendar:true, weather:true, notes:true, inbox:true };
+  html += '<div class="desktop-widgets-right">';
+  if (shown2.weather  ?? true) html += renderWeatherWidget();
+  if (shown2.calendar ?? true) html += renderCalendarWidget();
+  if (shown2.inbox    ?? true) html += renderMsgWidget();
+  if (shown2.notes    ?? true) html += renderNotesWidget();
+  html += '</div>';
+
   return html;
+}
+
+function renderDesktopApps() {
+  const items = buildNavItems().filter(i => !i.section && i.page !== 'desktop');
+  const PAGE_LABELS = {
+    settings:'Config.', squad:'Plantilla', tactical:'Pissarra', training:'Entrenaments',
+    veo:'VEO', tasks:'Tasques', wellness:'Wellness', selection:'Convocatòria',
+    player_training:'Entrenaments', player_veo:'Vídeos', player_selection:'Convocatòria',
+    player_wellness:'Wellness', scouting:'Scouting', communication:'Comunicació',
+    accreditations:'Acreditac.', office:'Oficina', members:'Socis',
+    teams:'Equips', admin_dashboard:'Admin', admin_users:'Usuaris',
+    admin_roles:'Rols', admin_perms:'Permisos', messaging:'Missatgeria', email:'Correu',
+  };
+  return `
+  <div class="desktop-apps">
+    ${items.map(item => `
+      <div class="desktop-app-icon-wrap" onclick="navigate('${item.page}')">
+        <div class="desktop-app-icon">${item.icon}</div>
+        <div class="desktop-app-label">${PAGE_LABELS[item.page] || item.label}</div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// ── WEATHER ────────────────────────────────────────────────
+
+const WX_DESC = {
+  0:'Sol', 1:'Quasi clar', 2:'Parcialment ennuvolat', 3:'Cobert',
+  45:'Boira', 48:'Boira gelada',
+  51:'Plugim feble', 53:'Plugim', 55:'Plugim fort',
+  61:'Pluja feble', 63:'Pluja', 65:'Pluja forta',
+  71:'Neu feble', 73:'Neu', 75:'Neu forta',
+  80:'Ruixats', 81:'Ruixats moderats', 82:'Ruixats forts',
+  95:'Tempesta', 96:'Tempesta amb pedra', 99:'Tempesta forta',
+};
+const WX_ICON = {
+  0:'☀️', 1:'🌤', 2:'⛅', 3:'☁️', 45:'🌫', 48:'🌫',
+  51:'🌦', 53:'🌦', 55:'🌧', 61:'🌧', 63:'🌧', 65:'🌧',
+  71:'🌨', 73:'🌨', 75:'❄️', 80:'🌦', 81:'🌧', 82:'⛈',
+  95:'⛈', 96:'⛈', 99:'⛈',
+};
+
+async function fetchWeather() {
+  const cache = lsGet('eh_weather_cache');
+  if (cache?.ts && (Date.now() - cache.ts) < 30 * 60 * 1000) {
+    updateWeatherWidget(cache); return;
+  }
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=41.3874&longitude=2.1686&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=Europe%2FMadrid&forecast_days=1');
+    const d = await r.json();
+    const cw = d.current_weather;
+    const dd = d.daily;
+    const w = { ts:Date.now(), temp:Math.round(cw.temperature), code:cw.weathercode, wind:Math.round(cw.windspeed), max:Math.round(dd.temperature_2m_max[0]), min:Math.round(dd.temperature_2m_min[0]), rain:dd.precipitation_probability_max[0]||0 };
+    lsSet('eh_weather_cache', w);
+    updateWeatherWidget(w);
+  } catch(e) {
+    const el = document.getElementById('widget-weather');
+    if (el) el.querySelector('.wx-loading').textContent = 'No disponible';
+  }
+}
+
+function updateWeatherWidget(w) {
+  const el = document.getElementById('widget-weather');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="wx-top">
+      <div>
+        <div class="wx-city">BARCELONA</div>
+        <div class="wx-desc">${WX_DESC[w.code]||'—'}</div>
+      </div>
+      <div class="wx-icon">${WX_ICON[w.code]||'🌡'}</div>
+    </div>
+    <div class="wx-temp">${w.temp}°<span class="wx-unit">C</span></div>
+    <div class="wx-details">
+      <span>↓${w.min}° · ↑${w.max}°</span>
+      <span>💨 ${w.wind} km/h</span>
+      ${w.rain > 0 ? `<span>🌧 ${w.rain}%</span>` : ''}
+    </div>`;
+}
+
+// ── QUICK NOTES ────────────────────────────────────────────
+
+function saveQuickNotes(text) { lsSet('eh_quick_notes', text); }
+
+// ── WIDGETS RENDER ─────────────────────────────────────────
+
+function renderCalendarWidget() {
+  const now  = new Date();
+  const y    = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+  const MONTHS = ['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  const DAYS   = ['Dl','Dm','Dc','Dj','Dv','Ds','Dg'];
+  const first  = new Date(y, m, 1).getDay();
+  const offset = first === 0 ? 6 : first - 1;
+  const total  = new Date(y, m + 1, 0).getDate();
+  const sel    = DB.selection ? DB.selection() : null;
+  const mDate  = sel?.match_date ? new Date(sel.match_date + 'T12:00:00') : null;
+  const isMatch = d => mDate && mDate.getFullYear()===y && mDate.getMonth()===m && mDate.getDate()===d;
+  let cells = Array(offset).fill(null);
+  for (let d = 1; d <= total; d++) cells.push(d);
+
+  return `
+  <div class="widget widget-calendar">
+    <div class="cal-header">
+      <span class="cal-month-name">${MONTHS[m]}</span>
+      <span class="cal-year-num">${y}</span>
+    </div>
+    <div class="cal-grid">
+      ${DAYS.map(d=>`<div class="cal-dn">${d}</div>`).join('')}
+      ${cells.map(d => !d
+        ? `<div class="cal-cell"></div>`
+        : `<div class="cal-cell ${d===today?'cal-today':''} ${isMatch(d)?'cal-match':''}">
+            ${d}${isMatch(d)?`<div class="cal-dot"></div>`:''}
+          </div>`
+      ).join('')}
+    </div>
+  </div>`;
+}
+
+function renderWeatherWidget() {
+  return `
+  <div class="widget widget-weather" id="widget-weather">
+    <div class="wx-loading">Carregant temps…</div>
+  </div>`;
+}
+
+function renderNotesWidget() {
+  const notes = lsGet('eh_quick_notes') || '';
+  return `
+  <div class="widget widget-notes">
+    <div class="widget-tasks-title">Notes ràpides</div>
+    <textarea class="notes-area" id="notes-widget-area" placeholder="Escriu una nota…"
+      oninput="saveQuickNotes(this.value)">${notes}</textarea>
+  </div>`;
+}
+
+function renderMsgWidget() {
+  const me     = currentUser.id;
+  const unread = getMessages().filter(m => m.to === me && !m.read);
+  const users  = DB.users();
+  return `
+  <div class="widget widget-inboxmsg" onclick="navigate('messaging')" style="cursor:pointer">
+    <div class="widget-tasks-title">
+      Missatgeria
+      ${unread.length > 0 ? `<span style="background:var(--brand);color:#fff;border-radius:20px;padding:1px 8px;font-size:.58rem;margin-left:4px;box-shadow:0 0 8px var(--brand-glow)">${unread.length}</span>` : ''}
+    </div>
+    ${unread.length === 0
+      ? `<div style="font-size:.72rem;color:rgba(255,255,255,.2);padding:2px 0">Cap missatge nou</div>`
+      : unread.slice(0,3).map(msg => {
+          const sender = users.find(u => u.id === msg.from);
+          return `<div class="widget-task-row">
+            <div class="avatar sm" style="flex-shrink:0;font-size:.52rem;width:20px;height:20px">${sender?.avatar||'?'}</div>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${msg.text.length > 28 ? msg.text.slice(0,28)+'…' : msg.text}</span>
+          </div>`;
+        }).join('')}
+    ${unread.length > 3 ? `<div class="widget-task-more">+${unread.length-3} missatges més</div>` : ''}
+  </div>`;
 }
 
 function saveWidgetPhoto(input) {
@@ -845,6 +1017,9 @@ function renderTaskbar() {
         <span class="taskbar-user-name">${u.name.split(' ')[0]}</span>
       </div>
       <span class="taskbar-time" id="taskbar-clock">${timeStr}</span>
+      <button id="pwa-install-btn" class="taskbar-logout" title="Instal·lar app" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16l-4-4h3V4h2v8h3l-4 4z"/><path d="M20 18H4v2h16v-2z"/></svg>
+      </button>
       <button class="taskbar-logout" onclick="logout()" title="Tancar sessió">${ico('logout')}</button>
     </div>
   </div>
