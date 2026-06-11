@@ -183,42 +183,136 @@ function renderVEO() {
   <div id="video-modal-container"></div>`;
 }
 
+// Emmagatzema Object URLs de fitxers locals (memòria de sessió)
+if (!window._veoFiles) window._veoFiles = {};
+
 function renderVideoCard(v, canEdit=false) {
-  const catColors = { attack:'var(--brand)', defence:'var(--blue)', transition:'var(--yellow)', set_pieces:'var(--green)' };
+  const catColors = { attack:'var(--brand)', defence:'var(--brand)', transition:'var(--brand)', set_pieces:'var(--brand)' };
   const catLabels = { attack:'Atac', defence:'Defensa', transition:'Transició', set_pieces:'Pilota aturada' };
+  const localUrl  = window._veoFiles[v.id];
+  const hasUrl    = localUrl || v.url;
+
+  const thumb = localUrl
+    ? `<video src="${localUrl}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" preload="metadata" muted></video>
+       <div style="position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center">
+         <div class="play-btn">${ico('play')}</div>
+       </div>`
+    : `<div style="position:absolute;inset:0;background:linear-gradient(135deg,var(--brand-dim),var(--bg3));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+         ${v.isLocal && !localUrl
+           ? `<div style="font-size:.65rem;color:var(--text3);text-align:center;padding:0 12px">Fitxer local<br>no disponible</div>
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:.65rem">
+                Re-carregar<input type="file" accept="video/*" style="display:none" onchange="reloadLocalVideo('${v.id}',this)">
+              </label>`
+           : `<div class="play-btn">${ico('play')}</div>`
+         }
+       </div>`;
+
   return `
-  <div class="video-card" data-cat="${v.category}">
-    <div class="video-thumb">
-      <div style="position:absolute;inset:0;background:linear-gradient(135deg,${catColors[v.category]||'var(--brand)'}20,var(--bg3));display:flex;align-items:center;justify-content:center">
-        <div class="play-btn">${ico('play')}</div>
-      </div>
-    </div>
+  <div class="video-card" data-cat="${v.category}" ${hasUrl ? `onclick="playVideo('${v.id}')" style="cursor:pointer"` : ''}>
+    <div class="video-thumb">${thumb}</div>
     <div class="video-info">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
         <div class="video-title">${v.title}</div>
-        ${canEdit ? `<button class="btn-icon btn-sm" onclick="deleteVideo('${v.id}')" style="color:var(--brand)">${ico('trash')}</button>` : ''}
+        ${canEdit ? `<button class="btn-icon btn-sm" onclick="event.stopPropagation();deleteVideo('${v.id}')" style="color:var(--brand)">${ico('trash')}</button>` : ''}
       </div>
-      <div class="video-meta">${v.description}</div>
+      <div class="video-meta">${v.description||''}</div>
       <div style="margin-top:7px;display:flex;align-items:center;justify-content:space-between">
-        <span class="badge" style="background:${catColors[v.category]||'var(--brand)'}18;color:${catColors[v.category]||'var(--brand)'}">${catLabels[v.category]||v.category}</span>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span class="badge badge-blue">${catLabels[v.category]||v.category}</span>
+          ${v.isLocal ? `<span class="badge" style="background:rgba(10,132,255,.1);color:var(--brand);font-size:.58rem">LOCAL</span>` : ''}
+        </div>
         <span style="font-size:.68rem;color:var(--text3)">${formatDate(v.date)}</span>
       </div>
     </div>
   </div>`;
 }
 
+function playVideo(id) {
+  const v = DB.videos().find(x => x.id === id);
+  if (!v) return;
+  const url = window._veoFiles[id] || v.url;
+  if (!url) return;
+
+  // Elimina modal anterior si existeix
+  document.getElementById('veo-player-modal')?.remove();
+
+  const isLocal = !!window._veoFiles[id];
+  document.body.insertAdjacentHTML('beforeend', `
+  <div class="modal-overlay" id="veo-player-modal" onclick="if(event.target===this){document.getElementById('veo-player-modal').remove()}">
+    <div class="modal modal-lg" style="padding:0;background:#000;max-width:860px;border-radius:16px;overflow:hidden">
+      <div style="position:relative">
+        ${isLocal
+          ? `<video src="${url}" controls autoplay style="width:100%;max-height:500px;display:block;background:#000"></video>`
+          : `<div style="position:relative;padding-bottom:56.25%;height:0">
+               <iframe src="${embedUrl(url)}" style="position:absolute;inset:0;width:100%;height:100%;border:none" allowfullscreen></iframe>
+             </div>`
+        }
+        <button onclick="document.getElementById('veo-player-modal').remove()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center">×</button>
+      </div>
+      <div style="padding:16px 20px;background:var(--bg)">
+        <div style="font-weight:700;font-size:.9rem;color:var(--text)">${v.title}</div>
+        ${v.description ? `<div style="font-size:.75rem;color:var(--text3);margin-top:4px">${v.description}</div>` : ''}
+      </div>
+    </div>
+  </div>`);
+}
+
+function embedUrl(url) {
+  if (!url) return '';
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+  if (ytMatch) return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1`;
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+  return url;
+}
+
 function openVideoModal() {
   document.getElementById('video-modal-container').innerHTML = `
-  <div class="modal-overlay" id="video-modal">
-    <div class="modal">
-      <div class="modal-header"><div class="modal-title">Nou Vídeo</div><button class="btn-icon" onclick="closeModal('video-modal')">${ico('close')}</button></div>
-      <div class="modal-body">
+  <div class="modal-overlay" id="video-modal" onclick="if(event.target===this)closeModal('video-modal')">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <div class="modal-title">Afegir Vídeo</div>
+        <button class="btn-icon" onclick="closeModal('video-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:4px">
+
+        <!-- Tabs font -->
+        <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:14px">
+          <button id="vtab-local" onclick="switchVTab('local')" style="flex:1;padding:8px;font-size:.78rem;font-weight:600;border:none;background:none;cursor:pointer;color:var(--brand);border-bottom:2px solid var(--brand);transition:all .18s">
+            ${ico('plus')} Des de l'ordinador
+          </button>
+          <button id="vtab-url" onclick="switchVTab('url')" style="flex:1;padding:8px;font-size:.78rem;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .18s">
+            ${ico('arrow')} Per URL
+          </button>
+        </div>
+
+        <!-- Font: fitxer local -->
+        <div id="vsrc-local">
+          <div style="border:2px dashed var(--border2);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .18s" id="vdrop-zone" onclick="document.getElementById('v-file').click()" ondragover="event.preventDefault();this.style.borderColor='var(--brand)'" ondragleave="this.style.borderColor=''" ondrop="handleVDrop(event)">
+            <div id="vdrop-icon" style="font-size:2rem;margin-bottom:8px">🎬</div>
+            <div id="vdrop-text" style="font-size:.8rem;font-weight:600;color:var(--text2)">Arrossega un vídeo aquí</div>
+            <div style="font-size:.7rem;color:var(--text3);margin-top:4px">o clica per seleccionar</div>
+            <div style="font-size:.65rem;color:var(--text3);margin-top:6px">MP4, MOV, AVI, MKV — màx. recomanat 500 MB</div>
+            <input type="file" id="v-file" accept="video/*" style="display:none" onchange="handleVFile(this)">
+          </div>
+          <div id="v-file-preview" style="display:none;margin-top:12px"></div>
+        </div>
+
+        <!-- Font: URL -->
+        <div id="vsrc-url" style="display:none">
+          <div class="form-group"><label class="form-label">URL del vídeo (YouTube, Vimeo, directe…)</label><input class="form-input" id="v-url" placeholder="https://youtube.com/watch?v=..."></div>
+        </div>
+
         <div class="form-group"><label class="form-label">Títol</label><input class="form-input" id="v-title"></div>
         <div class="form-group"><label class="form-label">Categoria</label>
-          <select class="form-select" id="v-cat"><option value="attack">Atac</option><option value="defence">Defensa</option><option value="transition">Transició</option><option value="set_pieces">Pilota Aturada</option></select>
+          <select class="form-select" id="v-cat">
+            <option value="attack">Atac</option>
+            <option value="defence">Defensa</option>
+            <option value="transition">Transició</option>
+            <option value="set_pieces">Pilota Aturada</option>
+          </select>
         </div>
-        <div class="form-group"><label class="form-label">Descripció</label><textarea class="form-textarea" id="v-desc" style="min-height:60px"></textarea></div>
-        <div class="form-group"><label class="form-label">URL del vídeo</label><input class="form-input" id="v-url" placeholder="https://..."></div>
+        <div class="form-group"><label class="form-label">Descripció (opcional)</label><textarea class="form-textarea" id="v-desc" style="min-height:54px"></textarea></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeModal('video-modal')">Cancel·lar</button>
@@ -228,11 +322,80 @@ function openVideoModal() {
   </div>`;
 }
 
+function switchVTab(tab) {
+  const isLocal = tab === 'local';
+  document.getElementById('vsrc-local').style.display = isLocal ? '' : 'none';
+  document.getElementById('vsrc-url').style.display   = isLocal ? 'none' : '';
+  document.getElementById('vtab-local').style.color        = isLocal ? 'var(--brand)' : 'var(--text3)';
+  document.getElementById('vtab-local').style.borderBottomColor = isLocal ? 'var(--brand)' : 'transparent';
+  document.getElementById('vtab-url').style.color          = isLocal ? 'var(--text3)' : 'var(--brand)';
+  document.getElementById('vtab-url').style.borderBottomColor   = isLocal ? 'transparent' : 'var(--brand)';
+}
+
+function handleVDrop(e) {
+  e.preventDefault();
+  document.getElementById('vdrop-zone').style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('video/')) processVFile(file);
+  else toast('Cal un fitxer de vídeo vàlid','error');
+}
+
+function handleVFile(input) {
+  const file = input.files[0];
+  if (file) processVFile(file);
+}
+
+function processVFile(file) {
+  const sizeGB = file.size / 1024 / 1024 / 1024;
+  if (sizeGB > 2) { toast('Fitxer massa gran (màx. 2 GB)','error'); return; }
+
+  const url = URL.createObjectURL(file);
+  window._veoFiles['__pending__'] = url;
+  window._veoFiles['__pendingFile__'] = file;
+
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  const drop = document.getElementById('vdrop-zone');
+  drop.innerHTML = `
+    <video src="${url}" style="width:100%;max-height:140px;border-radius:8px;object-fit:cover" preload="metadata" muted></video>
+    <div style="margin-top:8px;font-size:.78rem;font-weight:600;color:var(--text)">${file.name}</div>
+    <div style="font-size:.7rem;color:var(--text3)">${sizeMB} MB</div>`;
+
+  if (!document.getElementById('v-title').value)
+    document.getElementById('v-title').value = file.name.replace(/\.[^.]+$/, '');
+}
+
+function reloadLocalVideo(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  window._veoFiles[id] = url;
+  navigate('veo');
+  toast('Vídeo re-carregat','success');
+}
+
 function saveVideo() {
-  const title = document.getElementById('v-title').value.trim();
+  const title = document.getElementById('v-title')?.value.trim();
   if (!title) { toast('Títol obligatori','error'); return; }
+
+  const isLocalTab = document.getElementById('vsrc-local')?.style.display !== 'none';
+  const pendingUrl = window._veoFiles['__pending__'];
+  const hasUrl     = document.getElementById('v-url')?.value.trim();
+
+  if (isLocalTab && !pendingUrl) { toast('Selecciona un fitxer de vídeo','error'); return; }
+  if (!isLocalTab && !hasUrl)    { toast('Introdueix una URL','error'); return; }
+
+  const id = uid();
   const videos = DB.videos();
-  videos.unshift({ id:uid(), title, category:document.getElementById('v-cat').value, description:document.getElementById('v-desc').value.trim(), url:document.getElementById('v-url').value.trim(), date:new Date().toISOString().split('T')[0] });
+
+  if (isLocalTab) {
+    window._veoFiles[id] = pendingUrl;
+    delete window._veoFiles['__pending__'];
+    delete window._veoFiles['__pendingFile__'];
+    videos.unshift({ id, title, category: document.getElementById('v-cat').value, description: document.getElementById('v-desc').value.trim(), url:'', isLocal:true, date: new Date().toISOString().split('T')[0] });
+  } else {
+    videos.unshift({ id, title, category: document.getElementById('v-cat').value, description: document.getElementById('v-desc').value.trim(), url: hasUrl, isLocal:false, date: new Date().toISOString().split('T')[0] });
+  }
+
   DB.saveVideos(videos);
   closeModal('video-modal');
   toast('Vídeo afegit','success');
@@ -241,6 +404,7 @@ function saveVideo() {
 
 function deleteVideo(id) {
   if (!confirm('Eliminar vídeo?')) return;
+  if (window._veoFiles[id]) { URL.revokeObjectURL(window._veoFiles[id]); delete window._veoFiles[id]; }
   DB.saveVideos(DB.videos().filter(v=>v.id!==id));
   toast('Vídeo eliminat','success');
   navigate('veo');

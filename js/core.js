@@ -301,16 +301,16 @@ const ICONS = {
   settings:`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>`,
   users:`<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/>`,
   shield:`<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>`,
-  tactical:`<rect x="2" y="3" width="20" height="18" rx="2"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><path d="M8 8l4 6M16 8l-4 6"/>`,
-  training:`<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`, /* pols activitat */
+  tactical:`<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="2" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2" fill="currentColor" stroke="none"/><path d="M8.5 8.5 Q10 11 12 15"/><path d="M15.5 8.5 Q14 11 12 15"/><line x1="8.5" y1="8.5" x2="15.5" y2="8.5" stroke-dasharray="2 2"/>`,
+  training:`<path d="M6 4v8"/><path d="M18 4v8"/><path d="M3 8h18"/><circle cx="6" cy="3" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="3" r="1" fill="currentColor" stroke="none"/><circle cx="18" cy="13" r="1" fill="currentColor" stroke="none"/><path d="M5 19h14M8 19v-3h8v3"/>`,
   video:`<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>`,
   tasks:`<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>`,
   wellness:`<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>`,
   selection:`<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/>`, /* calendari + check */
-  scouting:`<circle cx="6" cy="14" r="4"/><circle cx="18" cy="14" r="4"/><line x1="10" y1="14" x2="14" y2="14"/><path d="M10 14v-4a2 2 0 014 0v4"/>`, /* prismàtics */
+  scouting:`<circle cx="6" cy="14" r="3.5"/><circle cx="18" cy="14" r="3.5"/><rect x="9.5" y="12.5" width="5" height="3" rx=".5"/><path d="M9.5 14h-1m7 0h1"/><path d="M11 14v-4.5a1 1 0 012 0V14"/><path d="M13 7.5l2-3M11 7.5l-2-3"/>`,
   comm:`<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>`,
   office:`<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>`,
-  member:`<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>`,
+  member:`<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M13 10h5M13 14h3"/>`,
   admin:`<circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/>`,
   plus:`<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
   edit:`<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
@@ -534,7 +534,7 @@ function renderApp() {
         <img src="assets/escut.svg" alt="CE Europa">
         <span class="desktop-team-name">${currentTeam?.name || 'CE Europa'}</span>
       </div>
-      ${isDesktop ? renderWidgets() + renderDesktopApps() : ''}
+      ${isDesktop ? renderWidgets() : ''}
       ${isDesktop ? `` : `
       <div class="app-window">
         ${renderWindowBar()}
@@ -557,8 +557,8 @@ function renderApp() {
 const GRADIENT_WALLS = {
   'gradient-dark':   'linear-gradient(135deg,#060d1c 0%,#0a1628 100%)',
   'gradient-blue':   'linear-gradient(135deg,#03071e 0%,#023e8a 100%)',
-  'gradient-green':  'linear-gradient(135deg,#081c15 0%,#1b4332 100%)',
-  'gradient-purple': 'linear-gradient(135deg,#10002b 0%,#3c096c 100%)',
+  'gradient-sky':    'linear-gradient(135deg,#0d1b3e 0%,#1a3a6e 50%,#0d2b55 100%)',
+  'gradient-abyss':  'linear-gradient(160deg,#010d1e 0%,#0a2040 60%,#001233 100%)',
 };
 
 function applySettings() {
@@ -970,6 +970,83 @@ function renderLoading() {
   </div>`;
 }
 
+// ── PROFILE MODAL ──────────────────────────────────────────
+
+function openProfileModal() {
+  if (document.getElementById('profile-modal')) return;
+  const u = currentUser;
+  const photo = lsGet('eh_profile_photo');
+  document.body.insertAdjacentHTML('beforeend', `
+  <div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)closeModal('profile-modal')">
+    <div class="modal" style="width:min(400px,90vw);padding:0;overflow:hidden">
+      <div style="height:90px;background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand) 100%);position:relative;flex-shrink:0"></div>
+      <div style="padding:0 28px 28px">
+        <div style="position:relative;margin-top:-44px;margin-bottom:16px;display:flex;align-items:flex-end;gap:14px">
+          <div style="position:relative;cursor:pointer" onclick="document.getElementById('ph-input').click()" title="Canviar foto">
+            ${photo
+              ? `<img id="ph-preview" src="${photo}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.4);">`
+              : `<div id="ph-preview" class="avatar" style="width:80px;height:80px;font-size:1.6rem;border:3px solid var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.4);">${u.avatar}</div>`
+            }
+            <div style="position:absolute;bottom:2px;right:2px;width:22px;height:22px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:1rem;color:var(--text)">${u.name}</div>
+            <div style="font-size:.72rem;color:var(--text3);margin-top:2px">${DEFAULT_ROLES[u.role]?.label||u.role}</div>
+          </div>
+        </div>
+        <input type="file" id="ph-input" accept="image/*" style="display:none" onchange="handleProfilePhoto(event)">
+        <div style="background:var(--bg2);border-radius:10px;padding:14px 16px;border:1px solid var(--border);margin-bottom:16px">
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px">Informació del compte</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:.8rem">
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Usuari</span><span style="color:var(--text);font-weight:500">${u.username||u.id}</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Rol</span><span style="color:var(--text);font-weight:500">${DEFAULT_ROLES[u.role]?.label||u.role}</span></div>
+          </div>
+        </div>
+        ${photo ? `<button class="btn btn-ghost btn-sm" onclick="removeProfilePhoto()" style="width:100%;justify-content:center;margin-bottom:10px">Eliminar foto de perfil</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('profile-modal')" style="width:100%;justify-content:center">Tancar</button>
+      </div>
+    </div>
+  </div>`);
+}
+
+function handleProfilePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('La foto no pot superar 5 MB', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataURL = ev.target.result;
+    lsSet('eh_profile_photo', dataURL);
+    const prev = document.getElementById('ph-preview');
+    if (prev) {
+      prev.outerHTML = `<img id="ph-preview" src="${dataURL}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.4);">`;
+    }
+    // Actualitza el dock sense re-renderitzar tot
+    document.querySelector('.taskbar-user')?.querySelector('.avatar')?.remove();
+    const imgEl = document.querySelector('.taskbar-user img');
+    if (!imgEl) {
+      const taskbarAvatar = document.querySelector('.taskbar-user');
+      if (taskbarAvatar) taskbarAvatar.insertAdjacentHTML('afterbegin', `<img src="${dataURL}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;">`);
+    } else { imgEl.src = dataURL; }
+    toast('Foto de perfil actualitzada', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeProfilePhoto() {
+  lsSet('eh_profile_photo', null);
+  closeModal('profile-modal');
+  // Actualitza el dock
+  const img = document.querySelector('.taskbar-user img');
+  if (img) {
+    const u = currentUser;
+    img.outerHTML = `<div class="avatar">${u.avatar}</div>`;
+  }
+  toast('Foto eliminada', 'success');
+}
+
 function bindLogin() {
   document.getElementById('login-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -1012,8 +1089,8 @@ function renderTaskbar() {
     </div>
     <div class="taskbar-sep"></div>
     <div class="taskbar-right">
-      <div class="taskbar-user">
-        <div class="avatar">${u.avatar}</div>
+      <div class="taskbar-user" onclick="openProfileModal()" title="Perfil i configuració">
+        ${(()=>{ const ph=lsGet('eh_profile_photo'); return ph?`<img src="${ph}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;">`:`<div class="avatar">${u.avatar}</div>`; })()}
         <span class="taskbar-user-name">${u.name.split(' ')[0]}</span>
       </div>
       <span class="taskbar-time" id="taskbar-clock">${timeStr}</span>

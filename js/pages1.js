@@ -89,6 +89,7 @@ function renderSquad() {
       ${tab === 'players' ? `
         <input class="form-input" type="search" id="squad-search" placeholder="Cercar..." style="width:180px">
         ${can('invite') ? `<button class="btn btn-ghost" onclick="openInvitePlayerModal()">${ico('mail')} Convidar</button>` : ''}
+        ${canEdit ? `<button class="btn btn-ghost" onclick="seedWomensSquad()" title="Carrega la plantilla demo del 1r Equip Femení CE Europa">${ico('users')} Demo femení</button>` : ''}
         ${canEdit ? `<button class="btn btn-primary" onclick="openPlayerModal()">${ico('plus')} Nou</button>` : ''}
       ` : `
         ${showTeams ? `<button class="btn btn-primary" onclick="openCreateTeamModal()">${ico('plus')} Nou Equip</button>` : ''}
@@ -474,6 +475,57 @@ function deletePlayer(id) {
   if (!confirm('Eliminar jugador?')) return;
   DB.savePlayers(DB.players().filter(p=>p.id!==id));
   toast('Jugador eliminat','success');
+  navigate('squad');
+}
+
+// ── SEED PLANTILLA FEMENINA ──────────────────────────────────
+function seedWomensSquad() {
+  if (!currentTeamId) { toast('Cal tenir un equip actiu','error'); return; }
+  const existing = DB.players().filter(p => p.team_id === currentTeamId);
+  if (existing.length > 0 && !confirm(`Ja hi ha ${existing.length} fitxes en aquest equip. Afegir igualment les jugadores demo?`)) return;
+
+  const squad = [
+    // Porteres
+    { number:1,  name:'Alba',    surname:'Sánchez',   position:'Portera',      dob:'2000-03-12', foot:'D' },
+    { number:13, name:'Janet',   surname:'Martínez',  position:'Portera',      dob:'1999-07-25', foot:'D' },
+    { number:25, name:'Patricia',surname:'Curbelo',   position:'Portera',      dob:'2004-11-08', foot:'D' },
+    // Defenses / Laterals
+    { number:2,  name:'Núria',   surname:'Benet',     position:'Lateral D',    dob:'2001-05-14', foot:'D' },
+    { number:3,  name:'Júlia',   surname:'Serrat',    position:'Defensa',      dob:'2002-09-03', foot:'E' },
+    { number:4,  name:'Núria',   surname:'Ferrer',    position:'Defensa',      dob:'1999-02-19', foot:'D' },
+    { number:15, name:'Sara',    surname:'López',     position:'Defensa',      dob:'2003-06-27', foot:'D' },
+    { number:17, name:'Sara',    surname:'Extremera', position:'Lateral E',    dob:'2001-01-30', foot:'E' },
+    { number:21, name:'Ari',     surname:'Márquez',   position:'Lateral D',    dob:'2000-08-16', foot:'D' },
+    { number:22, name:'Haizea',  surname:'Uranga',    position:'Defensa',      dob:'2002-04-22', foot:'E' },
+    { number:29, name:'Naiara',  surname:'Lemos',     position:'Defensa',      dob:'2004-12-05', foot:'D' },
+    // Migcampistes
+    { number:8,  name:'Anna',    surname:'Bové',      position:'Migcampista',  dob:'1998-10-11', foot:'D' },
+    { number:14, name:'Miriam',  surname:'Labrador',  position:'Migcampista',  dob:'2001-03-07', foot:'D' },
+    { number:19, name:'Clara',   surname:'Clemente',  position:'Migcampista',  dob:'2003-09-18', foot:'E' },
+    { number:20, name:'Aina',    surname:'Torres',    position:'Migcampista',  dob:'2002-06-02', foot:'D' },
+    { number:27, name:'Anon',    surname:'Kojima',    position:'Migcampista',  dob:'2000-07-14', foot:'D' },
+    // Davanters
+    { number:7,  name:'Júlia',   surname:'Gómez',     position:'Extrem D',     dob:'2003-02-28', foot:'D' },
+    { number:9,  name:'Ainhoa',  surname:'Plaza',     position:'Davantera',    dob:'1999-11-03', foot:'D' },
+    { number:11, name:'Natalia', surname:'Fernández', position:'Extrem E',     dob:'2001-08-20', foot:'E' },
+    { number:12, name:'Maria',   surname:'González',  position:'Davantera',    dob:'2000-05-09', foot:'D', notes:'Coneguda com "Ibra"' },
+    { number:23, name:'María',   surname:'Abad',      position:'Davantera',    dob:'2002-10-15', foot:'D' },
+    { number:30, name:'Alba',    surname:'Pérez',     position:'Extrem D',     dob:'2004-03-21', foot:'D' },
+  ];
+
+  const players = DB.players();
+  squad.forEach(s => {
+    players.push({
+      id: uid(), team_id: currentTeamId,
+      name: s.name, surname: s.surname,
+      dob: s.dob, position: s.position,
+      number: s.number, foot: s.foot,
+      phone: '', email: '', notes: s.notes || '',
+      person_type: 'player', photo_url: '', doc_url: '',
+    });
+  });
+  DB.savePlayers(players);
+  toast(`${squad.length} jugadores carregades correctament 🎉`, 'success');
   navigate('squad');
 }
 

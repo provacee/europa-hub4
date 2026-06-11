@@ -25,8 +25,8 @@ function renderSettings() {
     { name:'Camp',                  val:'camp',          preview:'assets/camp.jpg' },
     { name:'Fosc Nocturn',         val:'gradient-dark',  preview:null, gradient:'linear-gradient(135deg,#060d1c 0%,#0a1628 100%)' },
     { name:'Blau Profund',         val:'gradient-blue',  preview:null, gradient:'linear-gradient(135deg,#03071e 0%,#023e8a 100%)' },
-    { name:'Verd Bosc',            val:'gradient-green', preview:null, gradient:'linear-gradient(135deg,#081c15 0%,#1b4332 100%)' },
-    { name:'Nit Violeta',          val:'gradient-purple',preview:null, gradient:'linear-gradient(135deg,#10002b 0%,#3c096c 100%)' },
+    { name:'Cel Nocturn',          val:'gradient-sky',   preview:null, gradient:'linear-gradient(135deg,#0d1b3e 0%,#1a3a6e 50%,#0d2b55 100%)' },
+    { name:'Abisme',               val:'gradient-abyss', preview:null, gradient:'linear-gradient(160deg,#010d1e 0%,#0a2040 60%,#001233 100%)' },
   ];
 
   const getWallStyle = (w) => w.preview
@@ -1495,44 +1495,278 @@ function renderAdminRoles() {
 
 // ── ADMIN: PERMISSIONS ─────────────────────────────────────
 
-// ── ADMIN DASHBOARD ─────────────────────────────────────────
+// ── ADMIN DASHBOARD (Gestió Club) ────────────────────────────
+
+function getMgmtData() {
+  return lsGet('eh_mgmt') || {
+    pressupost: { total: 280000, gastat: 162000 },
+    ingressos: [
+      { cat: 'Quotes soci', import: 48000 },
+      { cat: 'Patrocinadors', import: 65000 },
+      { cat: 'Federació', import: 32000 },
+      { cat: 'Entrades / taquilla', import: 22000 },
+      { cat: 'Botiga oficial', import: 8500 },
+    ],
+    despeses: [
+      { cat: 'Fitxes tècniques', import: 72000 },
+      { cat: 'Instal·lacions', import: 34000 },
+      { cat: 'Equipació i material', import: 18000 },
+      { cat: 'Desplaçaments', import: 14000 },
+      { cat: 'Formació i llicències', import: 9500 },
+      { cat: 'Administració', import: 14500 },
+    ],
+    staff: [
+      { nom: 'Marc Vila', rol: 'Director Esportiu', dept: 'Esportiu', sou: 2800 },
+      { nom: 'Carles Puig', rol: 'Entrenador Cap', dept: 'Esportiu', sou: 2400 },
+      { nom: 'Laia Torres', rol: 'Preparadora Física', dept: 'Esportiu', sou: 1800 },
+      { nom: 'Jordi Mas', rol: 'Analista Tàctic', dept: 'Tècnic', sou: 1600 },
+      { nom: 'Núria Soler', rol: 'Administrativa', dept: 'Oficina', sou: 1500 },
+      { nom: 'Ferran Gómez', rol: 'Comunicació i RRSS', dept: 'Comunicació', sou: 1400 },
+    ],
+    objectius: [
+      { titol: 'Classificació top-3 lliga', progres: 68, estat: 'encaminat' },
+      { titol: 'Arribar a 350 socis actius', progres: 82, estat: 'encaminat' },
+      { titol: 'Renovar 3 patrocinadors', progres: 67, estat: 'pendent' },
+      { titol: 'Acabar estadi amb nous vestidors', progres: 30, estat: 'risc' },
+      { titol: 'Llançar app mòbil per a socis', progres: 95, estat: 'encaminat' },
+      { titol: 'Incorporar 2 jugadors sub-23', progres: 50, estat: 'pendent' },
+    ],
+    reunions: [
+      { titol: 'Junta Directiva Q3', data: '2026-06-18', hora: '19:00', lloc: 'Sala de reunions' },
+      { titol: 'Reunió patrocinadors', data: '2026-06-24', hora: '10:30', lloc: 'Oficina central' },
+      { titol: 'Revisió pressupost final', data: '2026-07-02', hora: '11:00', lloc: 'Sala de reunions' },
+      { titol: 'Tancament fitxes temporada', data: '2026-07-10', hora: '09:00', lloc: 'Camp Municipal' },
+    ],
+    documents: [
+      { nom: 'Pressupost Temporada 25/26', tipus: 'Financer', data: '2025-09-01' },
+      { nom: 'Acta Junta Directiva Abril', tipus: 'Acta', data: '2026-04-15' },
+      { nom: 'Contracte Patrocinador Principal', tipus: 'Contracte', data: '2026-01-10' },
+      { nom: 'Estatuts CE Europa', tipus: 'Legal', data: '2024-06-01' },
+      { nom: 'Pla Estratègic 2025–2028', tipus: 'Estratègic', data: '2025-07-01' },
+      { nom: 'Llicències Federatives Temporada', tipus: 'Federat', data: '2025-09-15' },
+    ],
+  };
+}
 
 function renderAdminDashboard() {
   const users = DB.users();
-  const perms = DB.permissions();
+  const mgmt  = getMgmtData();
+  const totalIngres = mgmt.ingressos.reduce((s,i)=>s+i.import,0);
+  const totalDespes = mgmt.despeses.reduce((s,d)=>s+d.import,0);
+  const resultat    = totalIngres - totalDespes;
+  const pctPress    = Math.round((mgmt.pressupost.gastat / mgmt.pressupost.total) * 100);
+  const socis       = mgmt.objectius.find(o=>o.titol.includes('soci'));
+  const numSocis    = socis ? Math.round(350 * socis.progres/100) : '—';
+  const estats = { encaminat:'#30d158', pendent:'var(--brand)', risc:'#ff9f0a' };
+  const docColors = { Financer:'var(--brand)', Acta:'#30d158', Contracte:'#ff9f0a', Legal:'#ff453a', Estratègic:'#64b5f6', Federat:'#9c88ff' };
   const PERM_KEYS = [
     {key:'squad',label:'Plantilla'},{key:'tactical',label:'Pissarra'},{key:'training',label:'Entrenaments'},
     {key:'wellness',label:'Wellness'},{key:'selection',label:'Convocatòria'},{key:'scouting',label:'Scouting'},
     {key:'communication',label:'Comunicació'},{key:'office',label:'Oficina'},{key:'admin',label:'Admin'},
   ];
+  const perms = DB.permissions();
+
   return `
-  <div class="page-header" style="margin-bottom:20px">
+  <div class="page-header" style="margin-bottom:28px">
     <div class="page-header-left">
-      <div class="page-title">Tauler Admin</div>
-      <div class="page-subtitle">Gestió d'usuaris i permisos en un sol lloc</div>
+      <div class="page-title">Gerència</div>
+      <div class="page-subtitle">Temporada 2025–26 · Visió executiva del club</div>
     </div>
     <div class="page-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openMgmtEditModal()">${ico('edit')} Editar dades</button>
       <button class="btn btn-primary" onclick="openUserModal()">${ico('plus')} Nou Usuari</button>
     </div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
 
+  <!-- KPI row -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px">
+    <div class="mgmt-kpi">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:10px;background:var(--brand-dim);display:flex;align-items:center;justify-content:center;color:var(--brand)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <span style="font-size:.65rem;font-weight:700;color:#30d158;background:rgba(48,209,88,.1);padding:2px 8px;border-radius:99px">+${Math.round((totalIngres/mgmt.pressupost.total-1)*100)}%</span>
+      </div>
+      <div class="mgmt-kpi-value">${(totalIngres/1000).toFixed(0)}K€</div>
+      <div class="mgmt-kpi-label">Ingressos Totals</div>
+    </div>
+    <div class="mgmt-kpi">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,159,10,.12);display:flex;align-items:center;justify-content:center;color:#ff9f0a">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <span style="font-size:.65rem;font-weight:700;color:#ff9f0a;background:rgba(255,159,10,.1);padding:2px 8px;border-radius:99px">${pctPress}% gastat</span>
+      </div>
+      <div class="mgmt-kpi-value">${(mgmt.pressupost.total/1000).toFixed(0)}K€</div>
+      <div class="mgmt-kpi-label">Pressupost Anual</div>
+    </div>
+    <div class="mgmt-kpi">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(100,181,246,.12);display:flex;align-items:center;justify-content:center;color:#64b5f6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <span style="font-size:.65rem;font-weight:700;color:#64b5f6;background:rgba(100,181,246,.1);padding:2px 8px;border-radius:99px">${users.length} usuaris</span>
+      </div>
+      <div class="mgmt-kpi-value">${numSocis}</div>
+      <div class="mgmt-kpi-label">Socis Actius</div>
+    </div>
+    <div class="mgmt-kpi">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:10px;background:${resultat>=0?'rgba(48,209,88,.12)':'rgba(255,69,58,.12)'};display:flex;align-items:center;justify-content:center;color:${resultat>=0?'#30d158':'#ff453a'}">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <span class="mgmt-kpi-trend ${resultat>=0?'up':'down'}">${resultat>=0?'▲':'▼'} ${Math.abs(resultat/1000).toFixed(1)}K€</span>
+      </div>
+      <div class="mgmt-kpi-value" style="${resultat<0?'-webkit-text-fill-color:#ff453a;':''}">
+        ${resultat>=0?'+':''}${(resultat/1000).toFixed(1)}K€
+      </div>
+      <div class="mgmt-kpi-label">Resultat Net</div>
+    </div>
+  </div>
+
+  <!-- Fila principal: Finances + Objectius -->
+  <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:16px">
+
+    <!-- Finances -->
+    <div class="card" style="padding:22px">
+      <div class="mgmt-section-title">Finances detall
+        <span style="font-size:.7rem;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0">Temporada 25/26</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#30d158;margin-bottom:10px">Ingressos</div>
+          ${mgmt.ingressos.map(i=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.75rem;color:var(--text2)">${i.cat}</span>
+            <span style="font-size:.78rem;font-weight:600;color:var(--text)">${i.import.toLocaleString('ca-ES')}€</span>
+          </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:4px">
+            <span style="font-size:.75rem;font-weight:700;color:var(--text)">Total</span>
+            <span style="font-size:.8rem;font-weight:800;color:#30d158">${totalIngres.toLocaleString('ca-ES')}€</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#ff453a;margin-bottom:10px">Despeses</div>
+          ${mgmt.despeses.map(d=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:.75rem;color:var(--text2)">${d.cat}</span>
+            <span style="font-size:.78rem;font-weight:600;color:var(--text)">${d.import.toLocaleString('ca-ES')}€</span>
+          </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;padding:8px 0 0;margin-top:4px">
+            <span style="font-size:.75rem;font-weight:700;color:var(--text)">Total</span>
+            <span style="font-size:.8rem;font-weight:800;color:#ff453a">${totalDespes.toLocaleString('ca-ES')}€</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:18px;padding:14px;background:var(--bg2);border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)">Pressupost gastat</div>
+          <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${mgmt.pressupost.gastat.toLocaleString('ca-ES')}€ de ${mgmt.pressupost.total.toLocaleString('ca-ES')}€</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--brand)">${pctPress}%</div>
+          <div class="mgmt-progress-bar" style="width:100px"><div class="mgmt-progress-fill" style="width:${pctPress}%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Objectius de temporada -->
+    <div class="card" style="padding:22px">
+      <div class="mgmt-section-title">Objectius de temporada</div>
+      ${mgmt.objectius.map(o=>`
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <div style="font-size:.8rem;font-weight:600;color:var(--text);flex:1;min-width:0;margin-right:10px">${o.titol}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <span style="width:7px;height:7px;border-radius:50%;background:${estats[o.estat]||'var(--brand)'};display:inline-block"></span>
+            <span style="font-size:.72rem;font-weight:700;color:var(--brand)">${o.progres}%</span>
+          </div>
+        </div>
+        <div class="mgmt-progress-bar"><div class="mgmt-progress-fill" style="width:${o.progres}%;background:linear-gradient(90deg,${estats[o.estat]||'var(--brand)'},${estats[o.estat]||'var(--brand)'}88)"></div></div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Fila 2: Staff + Reunions + Documents -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px">
+
+    <!-- Staff -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="mgmt-section-title" style="margin:0;padding:16px 20px;border-bottom:1px solid var(--border)">
+        Personal Staff
+        <span style="font-size:.7rem;color:var(--text3);text-transform:none;letter-spacing:0">${mgmt.staff.length} persones</span>
+      </div>
+      ${mgmt.staff.map(s=>`
+      <div class="mgmt-row" style="padding:10px 16px">
+        <div class="avatar sm" style="background:var(--brand-dim);color:var(--brand);font-size:.6rem">${s.nom.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.8rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.nom}</div>
+          <div style="font-size:.68rem;color:var(--text3)">${s.rol}</div>
+        </div>
+        <div style="font-size:.75rem;font-weight:600;color:var(--text2);flex-shrink:0">${s.sou.toLocaleString('ca-ES')}€/m</div>
+      </div>`).join('')}
+      <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.68rem;color:var(--text3)">Cost mensual total</span>
+        <span style="font-size:.82rem;font-weight:800;color:var(--brand)">${mgmt.staff.reduce((s,p)=>s+p.sou,0).toLocaleString('ca-ES')}€</span>
+      </div>
+    </div>
+
+    <!-- Reunions -->
+    <div class="card" style="padding:22px">
+      <div class="mgmt-section-title">Properes reunions</div>
+      ${mgmt.reunions.map(r=>{
+        const d = new Date(r.data);
+        const dd = d.getDate().toString().padStart(2,'0');
+        const mm = d.toLocaleString('ca-ES',{month:'short'});
+        return `
+        <div class="mgmt-row" style="padding:10px 0">
+          <div style="width:42px;height:42px;border-radius:10px;background:var(--brand-dim);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+            <span style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:var(--brand)">${mm}</span>
+            <span style="font-size:1rem;font-weight:800;color:var(--brand);line-height:1">${dd}</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.8rem;font-weight:600;color:var(--text)">${r.titol}</div>
+            <div style="font-size:.68rem;color:var(--text3)">${r.hora} · ${r.lloc}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Documents -->
+    <div class="card" style="padding:22px">
+      <div class="mgmt-section-title">Documents clau</div>
+      ${mgmt.documents.map(d=>`
+      <div class="mgmt-row" style="padding:8px 0">
+        <div class="mgmt-doc-icon" style="background:${docColors[d.tipus]||'var(--brand-dim)'}18;color:${docColors[d.tipus]||'var(--brand)'}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.78rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.nom}</div>
+          <div style="font-size:.65rem;color:var(--text3)">${d.tipus} · ${new Date(d.data).toLocaleDateString('ca-ES',{day:'2-digit',month:'short',year:'numeric'})}</div>
+        </div>
+        <span style="font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;background:${docColors[d.tipus]||'var(--brand-dim)'}18;color:${docColors[d.tipus]||'var(--brand)'}">${d.tipus}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Fila 3: Usuaris + Permisos -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)">Perfils — ${users.length} usuaris</div>
+        <div class="mgmt-section-title" style="margin:0;border:none;padding:0">Usuaris del sistema <span style="color:var(--text3);font-weight:400">(${users.length})</span></div>
         <button class="btn btn-ghost btn-sm" onclick="navigate('admin_users')">Veure tot →</button>
       </div>
-      <div style="max-height:340px;overflow-y:auto">
+      <div style="max-height:280px;overflow-y:auto">
         ${users.map(u => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border)">
+        <div class="mgmt-row" style="padding:10px 20px">
           <div class="avatar sm">${u.avatar}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:.8rem;font-weight:600;color:var(--text)">${u.name}</div>
             <div style="font-size:.68rem;color:var(--text3)">${DEFAULT_ROLES[u.role]?.label||u.role}</div>
           </div>
           <div style="display:flex;gap:4px">
-            <button class="btn-icon" style="padding:5px" title="Editar" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
-            <button class="btn-icon" style="padding:5px" title="Permisos" onclick="openUserPermsModal('${u.id}')">${ico('shield')}</button>
+            <button class="btn-icon" style="padding:5px" onclick="openUserModal('${u.id}')">${ico('edit')}</button>
+            <button class="btn-icon" style="padding:5px" onclick="openUserPermsModal('${u.id}')">${ico('shield')}</button>
           </div>
         </div>`).join('')}
       </div>
@@ -1541,10 +1775,10 @@ function renderAdminDashboard() {
 
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:.68rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)">Permisos per Rol</div>
-        <button class="btn btn-ghost btn-sm" onclick="navigate('admin_perms')">Veure tot →</button>
+        <div class="mgmt-section-title" style="margin:0;border:none;padding:0">Permisos per Rol</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('admin_perms')">Editar →</button>
       </div>
-      <div style="overflow-x:auto;max-height:340px">
+      <div style="overflow-x:auto;max-height:280px">
         <table style="min-width:100%;font-size:.72rem">
           <thead><tr>
             <th style="padding:8px 14px;position:sticky;top:0;background:var(--bg2)">Mòdul</th>
@@ -1563,8 +1797,49 @@ function renderAdminDashboard() {
         </table>
       </div>
     </div>
-
   </div>`;
+}
+
+function openMgmtEditModal() {
+  const mgmt = getMgmtData();
+  document.body.insertAdjacentHTML('beforeend', `
+  <div class="modal-overlay" id="mgmt-edit-modal" onclick="if(event.target===this)closeModal('mgmt-edit-modal')">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">Editar dades de gestió</div>
+        <button class="btn-icon" onclick="closeModal('mgmt-edit-modal')">${ico('close')}</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div>
+            <label class="form-label">Pressupost total (€)</label>
+            <input class="form-input" id="me-press" type="number" value="${mgmt.pressupost.total}">
+          </div>
+          <div>
+            <label class="form-label">Pressupost gastat (€)</label>
+            <input class="form-input" id="me-gastat" type="number" value="${mgmt.pressupost.gastat}">
+          </div>
+        </div>
+        <div style="font-size:.72rem;color:var(--text3);padding:10px 12px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)">
+          Per editar ingressos, despeses, staff, objectius i reunions, accedeix a la base de dades directament o contacta l'administrador del sistema.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('mgmt-edit-modal')">Cancel·lar</button>
+        <button class="btn btn-primary" onclick="saveMgmtEdit()">Desar</button>
+      </div>
+    </div>
+  </div>`);
+}
+
+function saveMgmtEdit() {
+  const mgmt = getMgmtData();
+  mgmt.pressupost.total  = parseInt(document.getElementById('me-press').value)  || mgmt.pressupost.total;
+  mgmt.pressupost.gastat = parseInt(document.getElementById('me-gastat').value) || mgmt.pressupost.gastat;
+  lsSet('eh_mgmt', mgmt);
+  closeModal('mgmt-edit-modal');
+  navigate('admin_dashboard');
+  toast('Dades de gestió actualitzades', 'success');
 }
 
 // ── PER-USER PERMISSIONS ─────────────────────────────────────
